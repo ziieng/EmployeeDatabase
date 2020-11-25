@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/ziieng/EmployeeDatabase#readme",
   "dependencies": {
-    "console.table": "^0.10.0",
+    "console-table-printer": "^2.5.1",
     "inquirer": "^7.3.3",
     "mysql": "^2.18.1"
   }
