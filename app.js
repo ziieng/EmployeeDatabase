@@ -54,12 +54,15 @@ function chooseRoute() {
           chooseView();
           break;
         case "Edit":
+          chooseEdit();
           //view choices
           break;
         case "Add":
+          chooseAdd();
           //view choices
           break;
         case "Delete":
+          chooseDelete();
           //view choices
           break;
         case "Exit":
@@ -126,27 +129,89 @@ function chooseView() {
       }
     });
 }
-//  *Edit:
-//      Update Employee's Manager
-//      Update Employee's Role
-//      Update Salary of Role
-//      Update Department of Role
-//
-//  *Add:
-//      Add Employee
-//       -> First Name
-//       -> Last Name
-//       -> Role (if more than 5, prompt which department first)
-//          CHECK: Does role exist?
-//       -> Manager
-//          CHECK: Does employee exist?
-//      Add Role
-//       -> Title
-//       -> Salary
-//       -> Department
-//          CHECK: Does department exist?
-//      Add Department
-//       -> Name
+
+function chooseEdit() {
+  inquirer
+    .prompt({
+      name: "query",
+      type: "list",
+      message: "What would you like to edit?",
+      choices: [
+        "Update employee's manager",
+        "Update employee's role",
+        "Update salary of role",
+        "Update department of role",
+        new inquirer.Separator("OR:"),
+        "Go back",
+      ],
+    })
+    .then((ans) => {
+      switch (ans.query) {
+        case "Update employee's manager":
+          //choose employee
+          //query: update employees set manager_id=(selected) where id=(selected)
+          break;
+        case "Update employee's role":
+          //choose employee
+          //query: update employees set role_id=(selected) where id=(selected)
+          break;
+        case "Update salary of role":
+          //choose role (also show emp in it?)
+          //query: update roles set salary=(input) where id=(selected)
+          break;
+        case "Update department of role":
+          //choose role (also show emp in it?)
+          //query: update roles set dept_id=(input) where id=(selected)
+          break;
+        case "Go back":
+          chooseRoute();
+          //close
+          break;
+      }
+    });
+}
+
+function chooseAdd() {
+  inquirer
+    .prompt({
+      name: "query",
+      type: "list",
+      message: "What would you like to add?",
+      choices: [
+        "New Employee",
+        "New Role",
+        "New Department",
+        new inquirer.Separator("OR:"),
+        "Go back",
+      ],
+    })
+    .then((ans) => {
+      switch (ans.query) {
+        case "New Employee":
+          //-> First Name
+          //-> Last Name
+          //-> Role (if more than 5, prompt which department first)
+          //-> Manager
+          //query: insert into employee (first_name, last_name, role_id, manager_id) value (prompt results)
+          break;
+        case "New Role":
+          //-> Title
+          //-> Salary
+          //-> Department
+          //query: insert into role (title, salary, department_id) value (prompt results)
+          break;
+        case "New Department":
+          //-> Name
+          //query: insert into department (name) value (input)
+          break;
+        case "Go back":
+          chooseRoute();
+          //close
+          break;
+      }
+    });
+}
+
 //
 //  *Delete:
 //      Delete Employee
