@@ -108,17 +108,19 @@ function chooseView() {
           //page breaks?
           break;
         case "Roles in a department":
+          //include option for null
           //query: select * from roles where dept_id is (selected)
           break;
         case "All employees":
           //query: select * from employees
           //page breaks?
           break;
-        case "Employees in a department":
+        case "Employees by department":
           //query: select * from employees where dept_id is (selected)
           //page breaks?
           break;
-        case "Employees reporting to same manager":
+        case "Employees by manager":
+          //include option for null!
           //query: select * from employees where manager_id is (selected)
           //page breaks?
           break;
@@ -212,11 +214,47 @@ function chooseAdd() {
     });
 }
 
-//
-//  *Delete:
-//      Delete Employee
-//          CHECK: Do they have direct reports?
-//      Delete Role
-//          CHECK: Does it have any assigned employees?
-//      Delete Department
-//          CHECK: Does it have any assigned roles?
+function chooseDelete() {
+  inquirer
+    .prompt({
+      name: "query",
+      type: "list",
+      message: "What would you like to remove?",
+      choices: [
+        "Delete Employee",
+        "Delete Role",
+        "Delete Department",
+        new inquirer.Separator("OR:"),
+        "Go back",
+      ],
+    })
+    .then((ans) => {
+      switch (ans.query) {
+        case "Delete Employee":
+          //choose employee
+          //CHECK if they're anyone's manager
+          //**if yes, alert user and ask if reports should be deleted too
+          //query: delete from employee where id=(selected)
+          //followup, keep reports: update employees set manager_id=(null) where manager_id=(selected)
+          //followup, deleting reports: delete from employee where manager_id=(selected)
+          break;
+        case "Delete Role":
+          //choose role
+          //CHECK if anyone's assigned to it
+          //**if yes, alert user that assignees will be deleted too, confirm OK
+          //query: delete from role where id=(selected)
+          break;
+        case "Delete Department":
+          //choose department
+          //CHECK if anyone's assigned to it
+          //**if yes, alert user and ask if assignees should be deleted too
+          //**if keep reports: update role set department_id=(null) where department_id=(selected)
+          //query: delete from department where id=(selected)
+          break;
+        case "Go back":
+          chooseRoute();
+          //close
+          break;
+      }
+    });
+}
