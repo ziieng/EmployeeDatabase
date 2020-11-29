@@ -17,6 +17,7 @@ const connection = mysql.createConnection({
   user: "root",
   password: process.env.MYSQL_PASSWORD,
   database: "empTrack_DB",
+  multipleStatements: true,
 });
 
 // Initiate MySQL Connection.
@@ -396,11 +397,96 @@ function chooseAdd() {
     .then((ans) => {
       switch (ans.query) {
         case "New Employee":
-          //-> First Name
-          //-> Last Name
-          //-> Role (if more than 5, prompt which department first)
-          //-> Manager
-          //query: insert into employee (first_name, last_name, role_id, manager_id) value (prompt results)
+          console.log("NEW EMPLOYEE");
+          let emp = {
+            first_name: "",
+            last_name: "",
+            role_id: 0,
+            manager_id: null,
+          };
+          connection.query(
+            `SELECT name, r_id, title, salary 
+          FROM role LEFT JOIN department ON role.department_id = department.d_id ; 
+          SELECT e_id, CONCAT(last_name, ", ", first_name) AS full_name, title 
+          FROM employee LEFT JOIN role ON employee.role_id=role.r_id`,
+            (err, res) => {
+              let roleList = [];
+              let mgrList = [
+                { name: "None", value: { name: "none", e_id: null } },
+              ];
+              for (let line of res[0]) {
+                roleList.push({
+                  name: `${line.title} in ${line.name} (salary: $${line.salary}`,
+                  value: { name: line.name, r_id: line.r_id },
+                });
+              }
+              roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+              for (let line of res[1]) {
+                mgrList.push({
+                  name: `${line.full_name} (title: $${line.title}`,
+                  value: { name: line.full_name, e_id: line.e_id },
+                });
+              }
+              mgrList.push({ name: "(CANCEL)", value: "CANCEL" });
+
+              inquirer
+                .prompt([
+                  {
+                    type: "input",
+                    name: "first",
+                    message: "What is the employee's first name?",
+                    validate: (str) => str != "",
+                  },
+                  {
+                    type: "input",
+                    name: "last",
+                    message: "What is the employee's last name?",
+                    validate: (str) => str != "",
+                  },
+                  {
+                    type: "list",
+                    name: "role",
+                    choices: roleList,
+                    message: "Which role should employee be assigned to?",
+                  },
+                ])
+                .then((ans1) => {
+                  console.log(ans1);
+                  if (ans1.role != "CANCEL") {
+                    emp.first_name = ans1.first;
+                    emp.last_name = ans1.last;
+                    emp.role_id = parseInt(ans1.role.r_id);
+                    inquirer
+                      .prompt([
+                        {
+                          type: "list",
+                          name: "mgr",
+                          choices: mgrList,
+                          message:
+                            "Who should be assigned as this employee's manager?",
+                        },
+                      ])
+                      .then((ans2) => {
+                        if (ans2 != "CANCEL") {
+                          connection.query(
+                            "INSERT INTO employee SET ?",
+                            emp,
+                            function (err, res) {
+                              if (err) throw err;
+                              console.log("Employee added!");
+                              chooseAdd();
+                            }
+                          );
+                        } else {
+                          chooseAdd();
+                        }
+                      });
+                  } else {
+                    chooseAdd();
+                  }
+                });
+            }
+          );
           break;
         case "New Role":
           //-> Title
@@ -409,8 +495,26 @@ function chooseAdd() {
           //query: insert into role (title, salary, department_id) value (prompt results)
           break;
         case "New Department":
-          //-> Name
-          //query: insert into department (name) value (input)
+          inquirer
+            .prompt([
+              {
+                type: "input",
+                name: "name",
+                message: "What is the department's name?",
+                validate: (str) => str != "",
+              },
+            ])
+            .then((ans) =>
+              connection.query(
+                "INSERT INTO department SET ?",
+                ans,
+                function (err, res) {
+                  if (err) throw err;
+                  console.log("Department added!");
+                  chooseAdd();
+                }
+              )
+            );
           break;
         case "Go back":
           chooseRoute();
