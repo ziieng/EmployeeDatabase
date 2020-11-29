@@ -489,12 +489,55 @@ function chooseAdd() {
           );
           break;
         case "New Role":
-          //-> Title
-          //-> Salary
-          //-> Department
-          //query: insert into role (title, salary, department_id) value (prompt results)
+          console.log("NEW ROLE");
+          connection.query("SELECT * FROM department", (err, res) => {
+            let deptList = [];
+            for (let line of res) {
+              deptList.push({
+                name: line.name,
+                value: { department_id: line.d_id },
+              });
+            }
+            deptList.push({ name: "(CANCEL)", value: "CANCEL" });
+            inquirer
+              .prompt([
+                {
+                  type: "input",
+                  name: "title",
+                  message: "What is the title for this role?",
+                  validate: (str) => str != "",
+                },
+                {
+                  type: "number",
+                  name: "salary",
+                  message: "What is the salary for this role?",
+                },
+                {
+                  type: "list",
+                  name: "department_id",
+                  choices: deptList,
+                  message: "Which department should this role be under?",
+                },
+              ])
+              .then((ans) => {
+                if (ans.department_id != "CANCEL") {
+                  connection.query(
+                    "INSERT INTO employee SET ?",
+                    ans,
+                    function (err, res) {
+                      if (err) throw err;
+                      console.log("Role added!");
+                      chooseAdd();
+                    }
+                  );
+                } else {
+                  chooseAdd();
+                }
+              });
+          });
           break;
         case "New Department":
+          console.log("NEW DEPARTMENT");
           inquirer
             .prompt([
               {
