@@ -459,7 +459,8 @@ function chooseEdit() {
             ON 
               role.department_id = department.d_id
             ORDER BY
-              name ASC`,
+              name ASC,
+              last_name ASC`,
             (err, res) => {
               let empList = [];
               for (let line of res) {
@@ -487,9 +488,14 @@ function chooseEdit() {
                 .then((ans) => {
                   let emp = ans.emp;
                   let mgr = ans.mgr;
-                  if (emp == mgr) {
+                  if (emp == "CANCEL" || mgr=="CANCEL"){
                     console.log(
-                      "\nAn employee can't be their own manager. Please try again.\n"
+                      "\nCancelling change.\n"
+                    );
+                    chooseEdit();
+                  } else if (emp == mgr) {
+                    console.log(
+                      "\nAn employee can't be assigned as their own manager. Please try again.\n"
                     );
                     chooseEdit();
                   } else {
@@ -504,7 +510,7 @@ function chooseEdit() {
                       ])
                       .then((ans) => {
                         if (ans.conf == false) {
-                          console.log("Canceled change.");
+                          console.log("\nCancelling change.\n");
                           //cancel, go back
                           chooseEdit();
                         } else {
@@ -518,7 +524,7 @@ function chooseEdit() {
                             (err, res) => {
                               if (err) throw err;
                               console.log(
-                                `Updated ${emp.full_name}'s manager to ${mgr.full_name} successfully!`
+                                `\nUpdated ${emp.full_name}'s manager to ${mgr.full_name} successfully!\n`
                               );
                               chooseRoute();
                             }
@@ -531,6 +537,57 @@ function chooseEdit() {
           );
           break;
         case "Update employee's role":
+          // connection.query(
+          //   `SELECT 
+          //     CONCAT(last_name, ", ", first_name) AS full_name,
+          //     title AS 'Role',
+          //     name AS 'Department',
+          //     salary,
+          //     e_id
+          //   FROM 
+          //     employee 
+          //   LEFT JOIN
+          //     role
+          //   ON
+          //     employee.role_id=role.r_id
+          //   LEFT JOIN 
+          //     department 
+          //   ON 
+          //     role.department_id = department.d_id
+          //   ORDER BY
+          //     name ASC,
+          //     last_name ASC
+          //   ;
+          //   SELECT 
+          //     title AS 'Role', 
+          //     name AS 'Department', 
+          //     salary 
+          //   FROM 
+          //     role 
+          //   LEFT JOIN 
+          //     department 
+          //   ON 
+          //     role.department_id = department.d_id 
+          //   ORDER BY 
+          //     name ASC, 
+          //     title ASC`,
+          //   (err, res) => {
+          //     let empList = [];
+          //     for (let line of res) {
+          //       empList.push({
+          //         name: `${line.full_name} (${line.Role} in ${line.Department} - salary $${line.salary})`,
+          //         value: { full_name: line.full_name, e_id: line.e_id },
+          //       });
+          //     }
+          //     empList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+          //     inquirer
+          //       .prompt([
+          //         {
+          //           type: "list",
+          //           name: "emp",
+          //           choices: empList,
+          //           message: "Which employee would you like to edit?",
+          //         },
           //choose employee
           //query: update employees set role_id=(selected) where id=(selected)
           break;
