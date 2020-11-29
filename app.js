@@ -8,7 +8,9 @@ const { Table } = require("console-table-printer");
 // Set the port of our application
 const PORT = process.env.PORT || 8080;
 
-// MySQL DB Connection Information (remember to change this with our specific credentials)
+let p = new Table()
+
+// MySQL DB Connection Information
 const connection = mysql.createConnection({
   host: "localhost",
   port: 3306,
@@ -24,22 +26,6 @@ connection.connect(function (err) {
   chooseRoute();
 });
 
-//REQUIREMENTS
-// Employee Mgmt Database
-//   Department table
-//   Role table
-//   Employee table
-// MySQL Queries
-//   Constructor or class to contain/organize them?
-// Inquirer interface
-//   console-table-printer is prettier
-
-//Interface Path
-//  If no database, create DB
-//  (**If no departments, force create one?)
-//  (**If no roles, force create one?)
-//  (**If no employees, force create one?)
-//
 function chooseRoute() {
   inquirer
     .prompt({
@@ -55,18 +41,16 @@ function chooseRoute() {
           break;
         case "Edit":
           chooseEdit();
-          //view choices
           break;
         case "Add":
           chooseAdd();
-          //view choices
           break;
         case "Delete":
           chooseDelete();
-          //view choices
           break;
         case "Exit":
           console.log("See you later!");
+          connection.end();
           //close
           break;
       }
@@ -98,18 +82,106 @@ function chooseView() {
     .then((ans) => {
       switch (ans.query) {
         case "All departments":
-          //query: select * from departments
+          p = new Table({
+            title: "All Departments",
+            columns: [{ name: "Department Name", alignment: "center" }],
+          });
+          connection.query(
+            `SELECT name AS 'Department Name' FROM department`,
+            (err, res) => {
+              if (err) throw err;
+              p.addRows(res);
+              p.printTable();
+              chooseRoute();
+            }
+          );
           break;
         case "Utilized budget of a department":
           //query: select (sum of salaries) from role where dept_id is (selected)
           break;
         case "All Roles":
-          //query: select * from roles
-          //page breaks?
+          p = new Table({
+            title: "All Roles (sort by Title)",
+            columns: [
+              { name: "Role", alignment: "center" },
+              { name: "Department", alignment: "center" },
+              { name: "Salary", alignment: "center" },
+            ],
+          });
+          connection.query(
+            `SELECT 
+              title AS 'Role', 
+              name AS 'Department', 
+              salary AS 'Salary' 
+            FROM 
+              role 
+            LEFT JOIN 
+              department 
+            ON role.department_id = department.d_id 
+            ORDER BY 
+              title`,
+            (err, res) => {
+              if (err) throw err;
+              p.addRows(res);
+              p.printTable();
+              chooseRoute();
+            }
+          );
           break;
         case "Roles in a department":
-          //include option for null
-          //query: select * from roles where dept_id is (selected)
+          connection.query("SELECT * FROM department", (err, res) => {
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  name: "dept",
+                  choices: () => {
+                    const deptList = [];
+                    for (let line of res) {
+                      deptList.push(line.name);
+                    }
+                    return deptList;
+                  },
+                  message: "Which department would you like?",
+                },
+              ])
+              .then((res) => {
+                p = new Table({
+                  title: `All Roles in ${res.dept}`,
+                  columns: [
+                    { name: "Role", alignment: "center" },
+                    { name: "Salary", alignment: "center" },
+                    { name: "Employees in Role", alignment: "center" },
+                  ],
+                });
+                connection.query(
+                  `SELECT 
+              COUNT(role_id) AS 'Employees in Role',
+              title AS 'Role', 
+              salary AS 'Salary' 
+            FROM 
+              role 
+            LEFT JOIN 
+              department 
+            ON 
+              role.department_id = department.d_id
+            LEFT JOIN
+              employee
+            ON
+              employee.role_id=role.r_id
+            WHERE
+              name = "${res.dept}"
+            GROUP BY 
+              role_id`,
+                  (err, res) => {
+                    if (err) throw err;
+                    p.addRows(res);
+                    p.printTable();
+                    chooseRoute();
+                  }
+                );
+              });
+          });
           break;
         case "All employees":
           //query: select * from employees
@@ -148,6 +220,7 @@ function chooseEdit() {
       ],
     })
     .then((ans) => {
+      // let empID = 0;
       switch (ans.query) {
         case "Update employee's manager":
           //choose employee
@@ -229,14 +302,11 @@ function chooseDelete() {
       ],
     })
     .then((ans) => {
+      // let empID = 0;
       switch (ans.query) {
         case "Delete Employee":
-          //choose employee
-          //CHECK if they're anyone's manager
-          //**if yes, alert user and ask if reports should be deleted too
-          //query: delete from employee where id=(selected)
-          //followup, keep reports: update employees set manager_id=(null) where manager_id=(selected)
-          //followup, deleting reports: delete from employee where manager_id=(selected)
+          // selectEmployee();
+          // deleteEmployee(empID);
           break;
         case "Delete Role":
           //choose role
@@ -258,3 +328,50 @@ function chooseDelete() {
       }
     });
 }
+
+// function selectEmployee() {
+//   //choose employee
+  // connection.query(
+  //   "SELECT e_id, first_name, last_name, title FROM employee LEFT JOIN role ON employee.role_id = role.r_id",
+  //   function (err, res) {
+  //     if (err) throw err;
+  //     let output = [];
+  //     for (let line of res) {
+  //       var optionData = {
+  //         name: `${line.last_name}, ${line.first_name} (${line.title})`,
+  //         value: {
+  //           id: line.e_id,
+  //           last_name: line.last_name,
+  //           first_name: line.first_name,
+  //           title: line.title,
+  //         },
+  //       };
+  //       output.push(optionData);
+  //     }
+  //     inquirer
+  //       .prompt([
+  //         {
+  //           type: "list",
+  //           message: "Select an employee from the list",
+  //           choices: output,
+  //           name: "employee",
+  //         },
+  //       ])
+  //       .then(function (selected) {
+  //         console.log(selected);
+  //         empID = selected.employee.id;
+  //       });
+//     }
+//   );
+// }
+// //CHECK if they're anyone's manager
+// //**if yes, alert user and ask if reports should be deleted too
+// //query: delete from employee where id=(selected)
+// //followup, keep reports: update employees set manager_id=(null) where manager_id=(selected)
+// //followup, deleting reports: delete from employee where manager_id=(selected)
+
+// function deleteEmployee(id) {
+//   console.log("it fired");
+//   console.log(id);
+//   //CHECK if they're anyone's manager
+// }
