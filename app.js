@@ -495,7 +495,7 @@ function chooseAdd() {
             for (let line of res) {
               deptList.push({
                 name: line.name,
-                value: { department_id: line.d_id },
+                value: line.d_id,
               });
             }
             deptList.push({ name: "(CANCEL)", value: "CANCEL" });
@@ -522,7 +522,7 @@ function chooseAdd() {
               .then((ans) => {
                 if (ans.department_id != "CANCEL") {
                   connection.query(
-                    "INSERT INTO employee SET ?",
+                    "INSERT INTO role SET ?",
                     ans,
                     function (err, res) {
                       if (err) throw err;
