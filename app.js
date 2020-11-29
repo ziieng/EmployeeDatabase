@@ -232,6 +232,40 @@ function chooseView() {
           });
           break;
         case "All employees":
+          p = new Table({
+            title: `All Employees`,
+            columns: [
+              { name: "Name", alignment: "center" },
+              { name: "Role", alignment: "center" },
+              { name: "Department", alignment: "center" },
+              { name: "Salary", alignment: "center" },
+            ],
+          });
+          connection.query(
+            `SELECT 
+        CONCAT(last_name, ", ", first_name) AS 'Name',
+        title AS 'Role',
+        name AS 'Department',
+        salary AS 'Salary'
+      FROM 
+        role 
+      LEFT JOIN 
+        department 
+      ON 
+        role.department_id = department.d_id
+      LEFT JOIN
+        employee
+      ON
+        employee.role_id=role.r_id
+      ORDER BY 
+        last_name`,
+            (err, res) => {
+              if (err) throw err;
+              p.addRows(res);
+              p.printTable();
+              chooseRoute();
+            }
+          );
           //query: select * from employees
           //page breaks?
           break;
