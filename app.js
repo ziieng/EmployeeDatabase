@@ -124,20 +124,20 @@ function chooseView() {
                 });
                 connection.query(
                   `SELECT 
-              SUM(salary) AS 'Total Salary',
-              name AS 'Department'
-            FROM 
-              role 
-            LEFT JOIN 
-              department 
-            ON 
-              role.department_id = department.d_id
-            LEFT JOIN
-              employee
-            ON
-              employee.role_id=role.r_id
-            WHERE
-              name = "${res.dept}"`,
+                    SUM(salary) AS 'Total Salary',
+                    name AS 'Department'
+                  FROM 
+                    role 
+                  LEFT JOIN 
+                    department 
+                  ON 
+                    role.department_id = department.d_id
+                  LEFT JOIN
+                    employee
+                  ON
+                    employee.role_id=role.r_id
+                  WHERE
+                    name = "${res.dept}"`,
                   (err, res) => {
                     if (err) throw err;
                     p.addRows(res);
@@ -205,23 +205,23 @@ function chooseView() {
                 });
                 connection.query(
                   `SELECT 
-              COUNT(role_id) AS 'Employees in Role',
-              title AS 'Role', 
-              salary AS 'Salary' 
-            FROM 
-              role 
-            LEFT JOIN 
-              department 
-            ON 
-              role.department_id = department.d_id
-            LEFT JOIN
-              employee
-            ON
-              employee.role_id=role.r_id
-            WHERE
-              name = "${res.dept}"
-            GROUP BY 
-              role_id`,
+                    COUNT(role_id) AS 'Employees in Role',
+                    title AS 'Role', 
+                    salary AS 'Salary' 
+                  FROM 
+                    role 
+                  LEFT JOIN 
+                    department 
+                  ON 
+                    role.department_id = department.d_id
+                  LEFT JOIN
+                    employee
+                  ON
+                    employee.role_id=role.r_id
+                  WHERE
+                    name = "${res.dept}"
+                  GROUP BY 
+                    role_id`,
                   (err, res) => {
                     if (err) throw err;
                     p.addRows(res);
@@ -244,22 +244,22 @@ function chooseView() {
           });
           connection.query(
             `SELECT 
-        CONCAT(last_name, ", ", first_name) AS 'Name',
-        title AS 'Role',
-        name AS 'Department',
-        salary AS 'Salary'
-      FROM 
-        role 
-      LEFT JOIN 
-        department 
-      ON 
-        role.department_id = department.d_id
-      LEFT JOIN
-        employee
-      ON
-        employee.role_id=role.r_id
-      ORDER BY 
-        last_name`,
+              CONCAT(last_name, ", ", first_name) AS 'Name',
+              title AS 'Role',
+              name AS 'Department',
+              salary AS 'Salary'
+            FROM 
+              role 
+            LEFT JOIN 
+              department 
+            ON 
+              role.department_id = department.d_id
+            LEFT JOIN
+              employee
+            ON
+              employee.role_id=role.r_id
+            ORDER BY 
+              last_name`,
             (err, res) => {
               if (err) throw err;
               p.addRows(res);
@@ -267,11 +267,9 @@ function chooseView() {
               chooseRoute();
             }
           );
-          //query: select * from employees
-          //page breaks?
           break;
         case "Employees in a department":
-          connection.query("SELECT * FROM department", (err, res) => {
+          connection.query("SELECT * FROM employee", (err, res) => {
             inquirer
               .prompt([
                 {
@@ -298,23 +296,23 @@ function chooseView() {
                 });
                 connection.query(
                   `SELECT 
-        CONCAT(last_name, ", ", first_name) AS 'Name',
-        title AS 'Role',
-        salary AS 'Salary'
-      FROM 
-        role 
-      LEFT JOIN 
-        department 
-      ON 
-        role.department_id = department.d_id
-      LEFT JOIN
-        employee
-      ON
-        employee.role_id=role.r_id
-        WHERE
-          name = "${res.dept}"
-      ORDER BY 
-        last_name`,
+                    CONCAT(last_name, ", ", first_name) AS 'Name',
+                    title AS 'Role',
+                    salary AS 'Salary'
+                  FROM 
+                    role 
+                  LEFT JOIN 
+                    department 
+                  ON 
+                    role.department_id = department.d_id
+                  LEFT JOIN
+                    employee
+                  ON
+                    employee.role_id=role.r_id
+                    WHERE
+                      name = "${res.dept}"
+                  ORDER BY 
+                    last_name`,
                   (err, res) => {
                     if (err) throw err;
                     p.addRows(res);
@@ -325,11 +323,96 @@ function chooseView() {
               });
           });
           break;
-        // case "Employees by manager":
-        //include option for null!
-        //query: select * from employees where manager_id is (selected)
-        //page breaks?
-        // break;
+        case "Employees reporting to same manager":
+          connection.query(
+            `SELECT 
+              CONCAT(last_name, ", ", first_name) AS full_name,
+              title AS 'Role',
+              name AS 'Department',
+              e_id
+            FROM 
+              employee 
+            LEFT JOIN
+              role
+            ON
+              employee.role_id=role.r_id
+            LEFT JOIN 
+              department 
+            ON 
+              role.department_id = department.d_id
+            WHERE
+              e_id
+            IN
+              (SELECT DISTINCT manager_id FROM employee)`,
+            (err, res) => {
+              let mgrList = [
+                {
+                  name: "(Unassigned)",
+                  value: { full_name: "(Unassigned)", e_id: "NULL" },
+                },
+              ];
+              for (let line of res) {
+                mgrList.push({
+                  name: `${line.full_name} (${line.Role} in ${line.Department})`,
+                  value: { full_name: line.full_name, e_id: line.e_id },
+                });
+              }
+              mgrList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              inquirer
+                .prompt([
+                  {
+                    type: "list",
+                    name: "mgr",
+                    choices: mgrList,
+                    message: "Which manager's team would you like to see?",
+                  },
+                ])
+                .then((ans) => {
+                  let mgr = ans.mgr;
+                  p = new Table({
+                    title: `Employees reporting to ${mgr.full_name}`,
+                    columns: [
+                      { name: "Name", alignment: "center" },
+                      { name: "Role", alignment: "center" },
+                      { name: "Department", alignment: "center" },
+                    ],
+                  });
+                  //Adjust employee ID variable to reflect MySQL's syntax needs
+                  if (mgr.e_id == "NULL") {
+                    mgr.e_id = "IS NULL";
+                  } else {
+                    mgr.e_id = `= ${mgr.e_id}`;
+                  }
+                  connection.query(
+                    `SELECT 
+                      CONCAT(last_name, ", ", first_name) AS 'Name',
+                      title AS 'Role',
+                      name AS 'Department'
+                    FROM 
+                      role 
+                    LEFT JOIN 
+                      department 
+                    ON 
+                      role.department_id = department.d_id
+                    LEFT JOIN
+                      employee
+                    ON
+                      employee.role_id=role.r_id
+                    WHERE
+                      manager_id ${mgr.e_id}
+                    ORDER BY 
+                      last_name`,
+                    (err, res) => {
+                      if (err) throw err;
+                      p.addRows(res);
+                      p.printTable();
+                      chooseRoute();
+                    }
+                  );
+                });
+            }
+          );
+          break;
         case "Go back":
           chooseRoute();
           //close
@@ -405,10 +488,25 @@ function chooseAdd() {
             manager_id: null,
           };
           connection.query(
-            `SELECT name, r_id, title, salary 
-          FROM role LEFT JOIN department ON role.department_id = department.d_id ; 
-          SELECT e_id, CONCAT(last_name, ", ", first_name) AS full_name, title 
-          FROM employee LEFT JOIN role ON employee.role_id=role.r_id`,
+            `SELECT 
+              name, r_id, title, salary 
+            FROM 
+              role 
+            LEFT JOIN 
+              department 
+            ON 
+              role.department_id = department.d_id
+            ; 
+            SELECT
+              e_id, 
+              CONCAT(last_name, ", ", first_name) AS full_name,
+              title 
+            FROM 
+              employee 
+            LEFT JOIN 
+              role 
+            ON 
+              employee.role_id=role.r_id`,
             (err, res) => {
               let roleList = [];
               let mgrList = [
