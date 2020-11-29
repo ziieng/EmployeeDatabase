@@ -8,7 +8,7 @@ const { Table } = require("console-table-printer");
 // Set the port of our application
 const PORT = process.env.PORT || 8080;
 
-let p = new Table()
+let p = new Table();
 
 // MySQL DB Connection Information
 const connection = mysql.createConnection({
@@ -269,15 +269,66 @@ function chooseView() {
           //query: select * from employees
           //page breaks?
           break;
-        case "Employees by department":
-          //query: select * from employees where dept_id is (selected)
-          //page breaks?
+        case "Employees in a department":
+          connection.query("SELECT * FROM department", (err, res) => {
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  name: "dept",
+                  choices: () => {
+                    const deptList = [];
+                    for (let line of res) {
+                      deptList.push(line.name);
+                    }
+                    return deptList;
+                  },
+                  message: "Which department would you like to see?",
+                },
+              ])
+              .then((res) => {
+                p = new Table({
+                  title: `Employees in ${res.dept}`,
+                  columns: [
+                    { name: "Name", alignment: "center" },
+                    { name: "Role", alignment: "center" },
+                    { name: "Salary", alignment: "center" },
+                  ],
+                });
+                connection.query(
+                  `SELECT 
+        CONCAT(last_name, ", ", first_name) AS 'Name',
+        title AS 'Role',
+        salary AS 'Salary'
+      FROM 
+        role 
+      LEFT JOIN 
+        department 
+      ON 
+        role.department_id = department.d_id
+      LEFT JOIN
+        employee
+      ON
+        employee.role_id=role.r_id
+        WHERE
+          name = "${res.dept}"
+      ORDER BY 
+        last_name`,
+                  (err, res) => {
+                    if (err) throw err;
+                    p.addRows(res);
+                    p.printTable();
+                    chooseRoute();
+                  }
+                );
+              });
+          });
           break;
-        case "Employees by manager":
-          //include option for null!
-          //query: select * from employees where manager_id is (selected)
-          //page breaks?
-          break;
+        // case "Employees by manager":
+        //include option for null!
+        //query: select * from employees where manager_id is (selected)
+        //page breaks?
+        // break;
         case "Go back":
           chooseRoute();
           //close
@@ -413,36 +464,36 @@ function chooseDelete() {
 
 // function selectEmployee() {
 //   //choose employee
-  // connection.query(
-  //   "SELECT e_id, first_name, last_name, title FROM employee LEFT JOIN role ON employee.role_id = role.r_id",
-  //   function (err, res) {
-  //     if (err) throw err;
-  //     let output = [];
-  //     for (let line of res) {
-  //       var optionData = {
-  //         name: `${line.last_name}, ${line.first_name} (${line.title})`,
-  //         value: {
-  //           id: line.e_id,
-  //           last_name: line.last_name,
-  //           first_name: line.first_name,
-  //           title: line.title,
-  //         },
-  //       };
-  //       output.push(optionData);
-  //     }
-  //     inquirer
-  //       .prompt([
-  //         {
-  //           type: "list",
-  //           message: "Select an employee from the list",
-  //           choices: output,
-  //           name: "employee",
-  //         },
-  //       ])
-  //       .then(function (selected) {
-  //         console.log(selected);
-  //         empID = selected.employee.id;
-  //       });
+// connection.query(
+//   "SELECT e_id, first_name, last_name, title FROM employee LEFT JOIN role ON employee.role_id = role.r_id",
+//   function (err, res) {
+//     if (err) throw err;
+//     let output = [];
+//     for (let line of res) {
+//       var optionData = {
+//         name: `${line.last_name}, ${line.first_name} (${line.title})`,
+//         value: {
+//           id: line.e_id,
+//           last_name: line.last_name,
+//           first_name: line.first_name,
+//           title: line.title,
+//         },
+//       };
+//       output.push(optionData);
+//     }
+//     inquirer
+//       .prompt([
+//         {
+//           type: "list",
+//           message: "Select an employee from the list",
+//           choices: output,
+//           name: "employee",
+//         },
+//       ])
+//       .then(function (selected) {
+//         console.log(selected);
+//         empID = selected.employee.id;
+//       });
 //     }
 //   );
 // }
