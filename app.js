@@ -97,11 +97,59 @@ function chooseView() {
           );
           break;
         case "Utilized budget of a department":
-          //query: select (sum of salaries) from role where dept_id is (selected)
+          connection.query("SELECT * FROM department", (err, res) => {
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  name: "dept",
+                  choices: () => {
+                    const deptList = [];
+                    for (let line of res) {
+                      deptList.push(line.name);
+                    }
+                    return deptList;
+                  },
+                  message: "Which department would you like to see?",
+                },
+              ])
+              .then((res) => {
+                p = new Table({
+                  title: `Utilized Budget`,
+                  columns: [
+                    { name: "Department", alignment: "center" },
+                    { name: "Total Salary", alignment: "center" },
+                  ],
+                });
+                connection.query(
+                  `SELECT 
+              SUM(salary) AS 'Total Salary',
+              name AS 'Department'
+            FROM 
+              role 
+            LEFT JOIN 
+              department 
+            ON 
+              role.department_id = department.d_id
+            LEFT JOIN
+              employee
+            ON
+              employee.role_id=role.r_id
+            WHERE
+              name = "${res.dept}"`,
+                  (err, res) => {
+                    if (err) throw err;
+                    p.addRows(res);
+                    p.printTable();
+                    chooseRoute();
+                  }
+                );
+              });
+          });
           break;
         case "All Roles":
           p = new Table({
-            title: "All Roles (sort by Title)",
+            title: "All Roles (sorted by Title)",
             columns: [
               { name: "Role", alignment: "center" },
               { name: "Department", alignment: "center" },
@@ -142,7 +190,7 @@ function chooseView() {
                     }
                     return deptList;
                   },
-                  message: "Which department would you like?",
+                  message: "Which department would you like to see?",
                 },
               ])
               .then((res) => {
