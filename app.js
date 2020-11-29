@@ -347,8 +347,8 @@ function chooseView() {
             (err, res) => {
               let mgrList = [
                 {
-                  name: "(Unassigned)",
-                  value: { full_name: "(Unassigned)", e_id: "NULL" },
+                  name: "(No manager assigned)",
+                  value: { full_name: "(No manager assigned)", e_id: "NULL" },
                 },
               ];
               for (let line of res) {
@@ -440,8 +440,84 @@ function chooseEdit() {
       // let empID = 0;
       switch (ans.query) {
         case "Update employee's manager":
-          //choose employee
-          //query: update employees set manager_id=(selected) where id=(selected)
+          connection.query(
+            `SELECT 
+              CONCAT(last_name, ", ", first_name) AS full_name,
+              title AS 'Role',
+              name AS 'Department',
+              e_id
+            FROM 
+              employee 
+            LEFT JOIN
+              role
+            ON
+              employee.role_id=role.r_id
+            LEFT JOIN 
+              department 
+            ON 
+              role.department_id = department.d_id`,
+            (err, res) => {
+              let empList = [];
+              for (let line of res) {
+                empList.push({
+                  name: `${line.full_name} (${line.Role} in ${line.Department})`,
+                  value: { full_name: line.full_name, e_id: line.e_id },
+                });
+              }
+              empList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              inquirer
+                .prompt([
+                  {
+                    type: "list",
+                    name: "emp",
+                    choices: empList,
+                    message: "Which employee would you like to edit?",
+                  },
+                  {
+                    type: "list",
+                    name: "mgr",
+                    choices: empList,
+                    message: "Which employee should be their new manager?",
+                  },
+                ])
+                .then((ans) => {
+                  let emp = ans.emp;
+                  let mgr = ans.mgr;
+                  //confirm
+                  inquirer
+                    .prompt([
+                      {
+                        type: "confirm",
+                        name: "conf",
+                        message: `Please confirm: \n ${mgr.full_name} \n  will be assigned as the NEW MANAGER FOR\n ${emp.full_name}`,
+                      },
+                    ])
+                    .then((ans) => {
+                      if (ans.conf == false) {
+                        console.log("Canceled change.");
+                        //cancel, go back
+                        chooseEdit();
+                      } else {
+                        connection.query(
+                          `UPDATE 
+                            employee
+                          SET
+                            manager_id = ${mgr.e_id}
+                          WHERE
+                            e_id = ${emp.e_id}`,
+                          (err, res) => {
+                            if (err) throw err;
+                            console.log(
+                              `Updated ${emp.full_name}'s manager to ${mgr.full_name} successfully!`
+                            );
+                            chooseRoute();
+                          }
+                        );
+                      }
+                    });
+                });
+            }
+          );
           break;
         case "Update employee's role":
           //choose employee
