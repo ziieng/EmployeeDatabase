@@ -343,7 +343,9 @@ function chooseView() {
             WHERE
               e_id
             IN
-              (SELECT DISTINCT manager_id FROM employee)`,
+              (SELECT DISTINCT manager_id FROM employee)
+            ORDER BY
+              name ASC`,
             (err, res) => {
               let mgrList = [
                 {
@@ -455,7 +457,9 @@ function chooseEdit() {
             LEFT JOIN 
               department 
             ON 
-              role.department_id = department.d_id`,
+              role.department_id = department.d_id
+            ORDER BY
+              name ASC`,
             (err, res) => {
               let empList = [];
               for (let line of res) {
@@ -483,38 +487,45 @@ function chooseEdit() {
                 .then((ans) => {
                   let emp = ans.emp;
                   let mgr = ans.mgr;
-                  //confirm
-                  inquirer
-                    .prompt([
-                      {
-                        type: "confirm",
-                        name: "conf",
-                        message: `Please confirm: \n ${mgr.full_name} \n  will be assigned as the NEW MANAGER FOR\n ${emp.full_name}`,
-                      },
-                    ])
-                    .then((ans) => {
-                      if (ans.conf == false) {
-                        console.log("Canceled change.");
-                        //cancel, go back
-                        chooseEdit();
-                      } else {
-                        connection.query(
-                          `UPDATE 
+                  if (emp == mgr) {
+                    console.log(
+                      "\nAn employee can't be their own manager. Please try again.\n"
+                    );
+                    chooseEdit();
+                  } else {
+                    //confirm
+                    inquirer
+                      .prompt([
+                        {
+                          type: "confirm",
+                          name: "conf",
+                          message: `Please confirm: \n ** ${mgr.full_name} ** \n will be assigned as the NEW MANAGER FOR\n ** ${emp.full_name} **\n`,
+                        },
+                      ])
+                      .then((ans) => {
+                        if (ans.conf == false) {
+                          console.log("Canceled change.");
+                          //cancel, go back
+                          chooseEdit();
+                        } else {
+                          connection.query(
+                            `UPDATE 
                             employee
                           SET
                             manager_id = ${mgr.e_id}
                           WHERE
                             e_id = ${emp.e_id}`,
-                          (err, res) => {
-                            if (err) throw err;
-                            console.log(
-                              `Updated ${emp.full_name}'s manager to ${mgr.full_name} successfully!`
-                            );
-                            chooseRoute();
-                          }
-                        );
-                      }
-                    });
+                            (err, res) => {
+                              if (err) throw err;
+                              console.log(
+                                `Updated ${emp.full_name}'s manager to ${mgr.full_name} successfully!`
+                              );
+                              chooseRoute();
+                            }
+                          );
+                        }
+                      });
+                  }
                 });
             }
           );
