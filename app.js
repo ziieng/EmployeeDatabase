@@ -249,15 +249,15 @@ function chooseView() {
               name AS 'Department',
               salary AS 'Salary'
             FROM 
-              role 
+              employee
+            LEFT JOIN
+              role
+            ON
+              employee.role_id=role.r_id 
             LEFT JOIN 
               department 
             ON 
               role.department_id = department.d_id
-            LEFT JOIN
-              employee
-            ON
-              employee.role_id=role.r_id
             ORDER BY 
               last_name`,
             (err, res) => {
@@ -819,17 +819,17 @@ function chooseEdit() {
                     });
                     connection.query(
                       `SELECT 
-                      CONCAT(last_name, ", ", first_name) AS 'Name'
-                    FROM 
-                      role 
-                    LEFT JOIN
-                      employee
-                    ON
-                      employee.role_id=role.r_id
-                    WHERE
-                      role_id = "${role.r_id}"
-                    ORDER BY 
-                      last_name`,
+                        CONCAT(last_name, ", ", first_name) AS 'Name'
+                      FROM 
+                        role 
+                      LEFT JOIN
+                        employee
+                      ON
+                        employee.role_id=role.r_id
+                      WHERE
+                        role_id = "${role.r_id}"
+                      ORDER BY 
+                        last_name`,
                       (err, res) => {
                         if (err) throw err;
                         p.addRows(res);
@@ -1105,10 +1105,109 @@ function chooseDelete() {
           // deleteEmployee(empID);
           break;
         case "Delete Role":
-          //choose role
-          //CHECK if anyone's assigned to it
-          //**if yes, alert user that assignees will be deleted too, confirm OK
-          //query: delete from role where id=(selected)
+          connection.query(
+            `SELECT 
+              title AS 'Role', 
+              name AS 'Department',
+              salary,
+              r_id 
+            FROM 
+              role 
+            LEFT JOIN 
+              department 
+            ON 
+              role.department_id = department.d_id 
+            ORDER BY 
+              name ASC, 
+              title ASC`,
+            (err, res) => {
+              let roleList = [];
+              for (let line of res) {
+                roleList.push({
+                  name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+                  value: line,
+                });
+              }
+              roleList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              inquirer
+                .prompt([
+                  {
+                    type: "list",
+                    name: "role",
+                    choices: roleList,
+                    message: "Which role do you want to delete?",
+                  },
+                ])
+                .then((ans) => {
+                  let role = ans.role;
+                  if (role == "CANCEL") {
+                    console.log("\nCancelling change.\n");
+                    chooseDelete();
+                  } else {
+                    connection.query(
+                      `SELECT 
+                          CONCAT(last_name, ", ", first_name) AS 'Name'
+                        FROM 
+                          role 
+                        LEFT JOIN
+                          employee
+                        ON
+                          employee.role_id=role.r_id
+                        WHERE
+                          role_id = "${role.r_id}"
+                        ORDER BY 
+                          last_name`,
+                      (err, res) => {
+                        if (err) throw err;
+                        if (res != "") {
+                          p = new Table({
+                            title: `\n\nEmployees assigned \n   to this role`,
+                            columns: [{ name: "Name", alignment: "center" }, ,],
+                          });
+                          p.addRows(res);
+                          p.printTable();
+                          console.log(
+                            "\nEmployees above are assigned to chosen role. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
+                          );
+                          chooseRoute();
+                        } else {
+                          //confirm
+                          inquirer
+                            .prompt([
+                              {
+                                type: "confirm",
+                                name: "conf",
+                                message: `\nPlease confirm: \n ** ${role.Role} in ${role.Department} ** \n will be DELETED.\n`,
+                              },
+                            ])
+                            .then((ans) => {
+                              if (ans.conf == false) {
+                                console.log("\nCancelling change.\n");
+                                //cancel, go back
+                                chooseDelete();
+                              } else {
+                                connection.query(
+                                  `DELETE FROM 
+                                  role
+                                WHERE
+                                  r_id = ${role.r_id}`,
+                                  (err, res) => {
+                                    if (err) throw err;
+                                    console.log(
+                                      `\n${role.Role} in ${role.Department} deleted successfully!\n`
+                                    );
+                                    chooseRoute();
+                                  }
+                                );
+                              }
+                            });
+                        }
+                      }
+                    );
+                  }
+                });
+            }
+          );
           break;
         case "Delete Department":
           //choose department
