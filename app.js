@@ -1101,8 +1101,123 @@ function chooseDelete() {
       // let empID = 0;
       switch (ans.query) {
         case "Delete Employee":
-          // selectEmployee();
-          // deleteEmployee(empID);
+          connection.query(
+            `SELECT 
+              CONCAT(last_name, ", ", first_name) AS full_name,
+              title AS 'Role',
+              name AS 'Department',
+              e_id
+            FROM 
+              employee 
+            LEFT JOIN
+              role
+            ON
+              employee.role_id=role.r_id
+            LEFT JOIN 
+              department 
+            ON 
+              role.department_id = department.d_id
+            ORDER BY 
+              name ASC, 
+              last_name ASC`,
+            (err, res) => {
+              let empList = [];
+              for (let line of res) {
+                empList.push({
+                  name: `${line.full_name} (${line.Role} in ${line.Department})`,
+                  value: line,
+                });
+              }
+              empList.push({ name: "(CANCEL)", value: "CANCEL" });
+              inquirer
+                .prompt([
+                  {
+                    type: "list",
+                    name: "emp",
+                    choices: empList,
+                    message: "Which employee do you want to delete?",
+                  },
+                ])
+                .then((ans) => {
+                  let emp = ans.emp;
+                  if (emp == "CANCEL") {
+                    console.log("\nCancelling change.\n");
+                    chooseDelete();
+                  } else {
+                    connection.query(
+                      `SELECT 
+                        CONCAT(last_name, ", ", first_name) AS 'Name',
+                        title AS 'Role',
+                        name AS 'Department'
+                      FROM 
+                        employee 
+                      LEFT JOIN
+                        role
+                      ON
+                        employee.role_id=role.r_id
+                      LEFT JOIN 
+                        department 
+                      ON 
+                        role.department_id = department.d_id
+                      WHERE
+                        manager_id = "${emp.e_id}"
+                      ORDER BY 
+                        last_name`,
+                      (err, res) => {
+                        if (err) throw err;
+                        if (res != "") {
+                          p = new Table({
+                            title: `\n\n  Employees managed \n by ${emp.full_name}`,
+                            columns: [
+                              { name: "Name", alignment: "center" },
+                              { name: "Role", alignment: "center" },
+                              { name: "Department", alignment: "center" },
+                            ],
+                          });
+                          p.addRows(res);
+                          p.printTable();
+                          console.log(
+                            "\nEmployees above have the chosen employee set as their manager. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
+                          );
+                          chooseRoute();
+                        } else {
+                          //confirm
+                          inquirer
+                            .prompt([
+                              {
+                                type: "confirm",
+                                name: "conf",
+                                message: `\nPlease confirm: \n ** ${emp.full_name} (${emp.Role} in ${emp.Department}) ** \n will be DELETED.\n`,
+                              },
+                            ])
+                            .then((ans) => {
+                              if (ans.conf == false) {
+                                console.log("\nCancelling change.\n");
+                                //cancel, go back
+                                chooseDelete();
+                              } else {
+                                connection.query(
+                                  `DELETE FROM 
+                                  employee
+                                WHERE
+                                  e_id = ${emp.e_id}`,
+                                  (err, res) => {
+                                    if (err) throw err;
+                                    console.log(
+                                      `\n${emp.full_name} deleted successfully!\n`
+                                    );
+                                    chooseRoute();
+                                  }
+                                );
+                              }
+                            });
+                        }
+                      }
+                    );
+                  }
+                });
+            }
+          );
           break;
         case "Delete Role":
           connection.query(
