@@ -359,7 +359,7 @@ function chooseView() {
                   value: { full_name: line.full_name, e_id: line.e_id },
                 });
               }
-              mgrList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              mgrList.push({ name: "(CANCEL)", value: "CANCEL" });
               inquirer
                 .prompt([
                   {
@@ -469,7 +469,7 @@ function chooseEdit() {
                   value: { full_name: line.full_name, e_id: line.e_id },
                 });
               }
-              empList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              empList.push({ name: "(CANCEL)", value: "CANCEL" });
               inquirer
                 .prompt([
                   {
@@ -579,14 +579,14 @@ function chooseEdit() {
                   value: { full_name: line.full_name, e_id: line.e_id },
                 });
               }
-              empList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              empList.push({ name: "(CANCEL)", value: "CANCEL" });
               for (let line of res[1]) {
                 roleList.push({
                   name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
                   value: line,
                 });
               }
-              roleList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              roleList.push({ name: "(CANCEL)", value: "CANCEL" });
               inquirer
                 .prompt([
                   {
@@ -670,7 +670,7 @@ function chooseEdit() {
                   value: line,
                 });
               }
-              roleList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              roleList.push({ name: "(CANCEL)", value: "CANCEL" });
               inquirer
                 .prompt([
                   {
@@ -782,7 +782,7 @@ function chooseEdit() {
                   value: line,
                 });
               }
-              roleList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              roleList.push({ name: "(CANCEL)", value: "CANCEL" });
               for (let line of res[1]) {
                 deptList.push({
                   name: line.name,
@@ -1128,7 +1128,7 @@ function chooseDelete() {
                   value: line,
                 });
               }
-              roleList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              roleList.push({ name: "(CANCEL)", value: "CANCEL" });
               inquirer
                 .prompt([
                   {
@@ -1210,11 +1210,101 @@ function chooseDelete() {
           );
           break;
         case "Delete Department":
-          //choose department
-          //CHECK if anyone's assigned to it
-          //**if yes, alert user and ask if assignees should be deleted too
-          //**if keep reports: update role set department_id=(null) where department_id=(selected)
-          //query: delete from department where id=(selected)
+          connection.query(
+            `SELECT 
+              *
+            FROM 
+              department 
+            ORDER BY 
+              name ASC`,
+            (err, res) => {
+              let deptList = [];
+              for (let line of res) {
+                deptList.push({
+                  name: line.name,
+                  value: line,
+                });
+              }
+              deptList.push({ name: "(CANCEL)", value: "CANCEL" });
+              inquirer
+                .prompt([
+                  {
+                    type: "list",
+                    name: "dept",
+                    choices: deptList,
+                    message: "Which department do you want to delete?",
+                  },
+                ])
+                .then((ans) => {
+                  let dept = ans.dept;
+                  if (dept == "CANCEL") {
+                    console.log("\nCancelling change.\n");
+                    chooseDelete();
+                  } else {
+                    connection.query(
+                      `SELECT 
+                          title AS 'Title'
+                        FROM 
+                          role
+                        LEFT JOIN
+                          department
+                        ON
+                          role.department_id=department.d_id
+                        WHERE
+                          department_id = "${dept.d_id}"
+                        ORDER BY 
+                          title ASC`,
+                      (err, res) => {
+                        if (err) throw err;
+                        if (res != "") {
+                          p = new Table({
+                            title: `\n\n  Roles assigned \nto this department`,
+                            columns: [{ name: "Title", alignment: "center" }],
+                          });
+                          p.addRows(res);
+                          p.printTable();
+                          console.log(
+                            "\nRoles above are assigned to chosen department. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
+                          );
+                          chooseRoute();
+                        } else {
+                          //confirm
+                          inquirer
+                            .prompt([
+                              {
+                                type: "confirm",
+                                name: "conf",
+                                message: `\nPlease confirm: \n ** ${dept.name} ** \n will be DELETED.\n`,
+                              },
+                            ])
+                            .then((ans) => {
+                              if (ans.conf == false) {
+                                console.log("\nCancelling change.\n");
+                                //cancel, go back
+                                chooseDelete();
+                              } else {
+                                connection.query(
+                                  `DELETE FROM 
+                                    department
+                                  WHERE
+                                    d_id = ${dept.d_id}`,
+                                  (err, res) => {
+                                    if (err) throw err;
+                                    console.log(
+                                      `\n${dept.name} deleted successfully!\n`
+                                    );
+                                    chooseRoute();
+                                  }
+                                );
+                              }
+                            });
+                        }
+                      }
+                    );
+                  }
+                });
+            }
+          );
           break;
         case "Go back":
           chooseRoute();
