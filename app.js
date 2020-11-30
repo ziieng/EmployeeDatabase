@@ -84,7 +84,7 @@ function chooseView() {
       switch (ans.query) {
         case "All departments":
           p = new Table({
-            title: "\n\nAll Departments",
+            title: "All Departments",
             columns: [{ name: "Department Name", alignment: "center" }],
           });
           connection.query(
@@ -92,6 +92,7 @@ function chooseView() {
             (err, res) => {
               if (err) throw err;
               p.addRows(res);
+              console.log("\n");
               p.printTable();
               chooseRoute();
             }
@@ -116,7 +117,7 @@ function chooseView() {
               ])
               .then((res) => {
                 p = new Table({
-                  title: `\n\nUtilized Budget`,
+                  title: `Utilized Budget`,
                   columns: [
                     { name: "Department", alignment: "center" },
                     { name: "Total Salary", alignment: "center" },
@@ -141,6 +142,7 @@ function chooseView() {
                   (err, res) => {
                     if (err) throw err;
                     p.addRows(res);
+                    console.log("\n");
                     p.printTable();
                     chooseRoute();
                   }
@@ -150,7 +152,7 @@ function chooseView() {
           break;
         case "All Roles":
           p = new Table({
-            title: "\n\nAll Roles (sorted by Title)",
+            title: "All Roles (sorted by Title)",
             columns: [
               { name: "Role", alignment: "center" },
               { name: "Department", alignment: "center" },
@@ -172,6 +174,7 @@ function chooseView() {
             (err, res) => {
               if (err) throw err;
               p.addRows(res);
+              console.log("\n");
               p.printTable();
               chooseRoute();
             }
@@ -196,7 +199,7 @@ function chooseView() {
               ])
               .then((res) => {
                 p = new Table({
-                  title: `\n\nAll Roles in ${res.dept}`,
+                  title: `All Roles in ${res.dept}`,
                   columns: [
                     { name: "Role", alignment: "center" },
                     { name: "Salary", alignment: "center" },
@@ -225,6 +228,7 @@ function chooseView() {
                   (err, res) => {
                     if (err) throw err;
                     p.addRows(res);
+                    console.log("\n");
                     p.printTable();
                     chooseRoute();
                   }
@@ -234,7 +238,7 @@ function chooseView() {
           break;
         case "All employees":
           p = new Table({
-            title: `\n\nAll Employees`,
+            title: `All Employees`,
             columns: [
               { name: "Name", alignment: "center" },
               { name: "Role", alignment: "center" },
@@ -287,7 +291,7 @@ function chooseView() {
               ])
               .then((res) => {
                 p = new Table({
-                  title: `\n\nEmployees in ${res.dept}`,
+                  title: `Employees in ${res.dept}`,
                   columns: [
                     { name: "Name", alignment: "center" },
                     { name: "Role", alignment: "center" },
@@ -316,6 +320,7 @@ function chooseView() {
                   (err, res) => {
                     if (err) throw err;
                     p.addRows(res);
+                    console.log("\n");
                     p.printTable();
                     chooseRoute();
                   }
@@ -372,7 +377,7 @@ function chooseView() {
                 .then((ans) => {
                   let mgr = ans.mgr;
                   p = new Table({
-                    title: `\n\nEmployees reporting to ${mgr.full_name}`,
+                    title: `Employees reporting to ${mgr.full_name}`,
                     columns: [
                       { name: "Name", alignment: "center" },
                       { name: "Role", alignment: "center" },
@@ -407,6 +412,7 @@ function chooseView() {
                     (err, res) => {
                       if (err) throw err;
                       p.addRows(res);
+                      console.log("\n");
                       p.printTable();
                       chooseRoute();
                     }
@@ -932,14 +938,14 @@ function chooseAdd() {
               ];
               for (let line of res[0]) {
                 roleList.push({
-                  name: `${line.title} in ${line.name} (salary: $${line.salary}`,
+                  name: `${line.title} in ${line.name} (salary: $${line.salary})`,
                   value: { name: line.name, r_id: line.r_id },
                 });
               }
               roleList.push({ name: "(CANCEL)", value: "CANCEL" });
               for (let line of res[1]) {
                 mgrList.push({
-                  name: `${line.full_name} (title: $${line.title}`,
+                  name: `${line.full_name} (title: $${line.title})`,
                   value: { name: line.full_name, e_id: line.e_id },
                 });
               }
@@ -1167,7 +1173,7 @@ function chooseDelete() {
                         if (err) throw err;
                         if (res != "") {
                           p = new Table({
-                            title: `\n\n  Employees managed \n by ${emp.full_name}`,
+                            title: `Employees managed by ${emp.full_name}`,
                             columns: [
                               { name: "Name", alignment: "center" },
                               { name: "Role", alignment: "center" },
@@ -1175,6 +1181,7 @@ function chooseDelete() {
                             ],
                           });
                           p.addRows(res);
+                          console.log("\n");
                           p.printTable();
                           console.log(
                             "\nEmployees above have the chosen employee set as their manager. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
