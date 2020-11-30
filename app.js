@@ -269,7 +269,7 @@ function chooseView() {
           );
           break;
         case "Employees in a department":
-          connection.query("SELECT * FROM employee", (err, res) => {
+          connection.query("SELECT * FROM department", (err, res) => {
             inquirer
               .prompt([
                 {
@@ -488,10 +488,8 @@ function chooseEdit() {
                 .then((ans) => {
                   let emp = ans.emp;
                   let mgr = ans.mgr;
-                  if (emp == "CANCEL" || mgr=="CANCEL"){
-                    console.log(
-                      "\nCancelling change.\n"
-                    );
+                  if (emp == "CANCEL" || mgr == "CANCEL") {
+                    console.log("\nCancelling change.\n");
                     chooseEdit();
                   } else if (emp == mgr) {
                     console.log(
@@ -516,11 +514,11 @@ function chooseEdit() {
                         } else {
                           connection.query(
                             `UPDATE 
-                            employee
-                          SET
-                            manager_id = ${mgr.e_id}
-                          WHERE
-                            e_id = ${emp.e_id}`,
+                              employee
+                            SET
+                              manager_id = ${mgr.e_id}
+                            WHERE
+                              e_id = ${emp.e_id}`,
                             (err, res) => {
                               if (err) throw err;
                               console.log(
@@ -537,31 +535,124 @@ function chooseEdit() {
           );
           break;
         case "Update employee's role":
+          connection.query(
+            `SELECT 
+              CONCAT(last_name, ", ", first_name) AS full_name,
+              title AS 'Role',
+              name AS 'Department',
+              salary,
+              e_id
+            FROM 
+              employee 
+            LEFT JOIN
+              role
+            ON
+              employee.role_id=role.r_id
+            LEFT JOIN 
+              department 
+            ON 
+              role.department_id = department.d_id
+            ORDER BY
+              name ASC,
+              last_name ASC
+            ;
+            SELECT 
+              title AS 'Role', 
+              name AS 'Department', 
+              salary,
+              r_id 
+            FROM 
+              role 
+            LEFT JOIN 
+              department 
+            ON 
+              role.department_id = department.d_id 
+            ORDER BY 
+              name ASC, 
+              title ASC`,
+            (err, res) => {
+              let empList = [];
+              let roleList = [];
+              for (let line of res[0]) {
+                empList.push({
+                  name: `${line.full_name} (${line.Role} in ${line.Department} - salary $${line.salary})`,
+                  value: { full_name: line.full_name, e_id: line.e_id },
+                });
+              }
+              empList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              for (let line of res[1]) {
+                roleList.push({
+                  name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+                  value: line,
+                });
+              }
+              roleList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              inquirer
+                .prompt([
+                  {
+                    type: "list",
+                    name: "emp",
+                    choices: empList,
+                    message: "Which employee would you like to edit?",
+                  },
+                  {
+                    type: "list",
+                    name: "role",
+                    choices: roleList,
+                    message: "What should their new role be?",
+                  },
+                ])
+                .then((ans) => {
+                  let emp = ans.emp;
+                  let role = ans.role;
+                  if (emp == "CANCEL" || role == "CANCEL") {
+                    console.log("\nCancelling change.\n");
+                    chooseEdit();
+                  } else {
+                    //confirm
+                    inquirer
+                      .prompt([
+                        {
+                          type: "confirm",
+                          name: "conf",
+                          message: `Please confirm: \n ** ${emp.full_name} ** \n will be assigned to NEW ROLE \n ** ${role.Role} in ${role.Department} (salary $${role.salary}) **\n`,
+                        },
+                      ])
+                      .then((ans) => {
+                        if (ans.conf == false) {
+                          console.log("\nCancelling change.\n");
+                          //cancel, go back
+                          chooseEdit();
+                        } else {
+                          connection.query(
+                            `UPDATE 
+                              employee
+                            SET
+                              role_id = ${role.r_id}
+                            WHERE
+                              e_id = ${emp.e_id}`,
+                            (err, res) => {
+                              if (err) throw err;
+                              console.log(
+                                `\nUpdated ${emp.full_name}'s role to ${role.Role} (${role.Department}) successfully!\n`
+                              );
+                              chooseRoute();
+                            }
+                          );
+                        }
+                      });
+                  }
+                });
+            }
+          );
+          break;
+        case "Update salary of role":
           // connection.query(
           //   `SELECT 
-          //     CONCAT(last_name, ", ", first_name) AS full_name,
-          //     title AS 'Role',
-          //     name AS 'Department',
-          //     salary,
-          //     e_id
-          //   FROM 
-          //     employee 
-          //   LEFT JOIN
-          //     role
-          //   ON
-          //     employee.role_id=role.r_id
-          //   LEFT JOIN 
-          //     department 
-          //   ON 
-          //     role.department_id = department.d_id
-          //   ORDER BY
-          //     name ASC,
-          //     last_name ASC
-          //   ;
-          //   SELECT 
           //     title AS 'Role', 
           //     name AS 'Department', 
-          //     salary 
+          //     salary,
+          //     r_id 
           //   FROM 
           //     role 
           //   LEFT JOIN 
@@ -572,32 +663,186 @@ function chooseEdit() {
           //     name ASC, 
           //     title ASC`,
           //   (err, res) => {
-          //     let empList = [];
+          //     let roleList = [];
           //     for (let line of res) {
-          //       empList.push({
-          //         name: `${line.full_name} (${line.Role} in ${line.Department} - salary $${line.salary})`,
-          //         value: { full_name: line.full_name, e_id: line.e_id },
+          //       roleList.push({
+          //         name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+          //         value: line,
           //       });
           //     }
-          //     empList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+          //     roleList.push({ full_name: "(CANCEL)", value: "CANCEL" });
           //     inquirer
           //       .prompt([
           //         {
           //           type: "list",
-          //           name: "emp",
-          //           choices: empList,
-          //           message: "Which employee would you like to edit?",
+          //           name: "role",
+          //           choices: roleList,
+          //           message: "Which role's salary would you like to change?",
           //         },
-          //choose employee
-          //query: update employees set role_id=(selected) where id=(selected)
-          break;
-        case "Update salary of role":
-          //choose role (also show emp in it?)
-          //query: update roles set salary=(input) where id=(selected)
+          //       ])
+          //       .then((ans) => {
+          //         let role = ans.role;
+          //         if (emp == "CANCEL" || role == "CANCEL") {
+          //           console.log("\nCancelling change.\n");
+          //           chooseEdit();
+          //         } else {
+          //           //confirm
+          //           inquirer
+          //             .prompt([
+          //               {
+          //                 type: "confirm",
+          //                 name: "conf",
+          //                 message: `Please confirm: \n ** ${emp.full_name} ** \n will be assigned to NEW ROLE \n ** ${role.Role} in ${role.Department} (salary $${role.salary}) **\n`,
+          //               },
+          //             ])
+          //             .then((ans) => {
+          //               if (ans.conf == false) {
+          //                 console.log("\nCancelling change.\n");
+          //                 //cancel, go back
+          //                 chooseEdit();
+          //               } else {
+          //                 connection.query(
+          //                   `UPDATE 
+          //                     employee
+          //                   SET
+          //                     role_id = ${role.r_id}
+          //                   WHERE
+          //                     e_id = ${emp.e_id}`,
+          //                   (err, res) => {
+          //                     if (err) throw err;
+          //                     console.log(
+          //                       `\nUpdated ${emp.full_name}'s role to ${role.Role} successfully!\n`
+          //                     );
+          //                     chooseRoute();
+          //                   }
+          //                 );
+          //               }
+          //             });
+          //         }
+          //       });
+          //   }
+          // );
           break;
         case "Update department of role":
-          //choose role (also show emp in it?)
-          //query: update roles set dept_id=(input) where id=(selected)
+          connection.query(
+            `SELECT 
+              title AS 'Role', 
+              name AS 'Department', 
+              salary,
+              r_id 
+            FROM 
+              role 
+            LEFT JOIN 
+              department 
+            ON 
+              role.department_id = department.d_id 
+            ORDER BY 
+              name ASC, 
+              title ASC
+            ;
+            SELECT
+              *
+            FROM
+              department`,
+            (err, res) => {
+              let roleList = [];
+              let deptList = [];
+              for (let line of res[0]) {
+                roleList.push({
+                  name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+                  value: line,
+                });
+              }
+              roleList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              for (let line of res[1]) {
+                deptList.push({
+                  name: line.name,
+                  value: line,
+                });
+              }
+              deptList.push({ name: "(CANCEL)", value: "CANCEL" });
+              inquirer
+                .prompt([
+                  {
+                    type: "list",
+                    name: "role",
+                    choices: roleList,
+                    message:
+                      "Which role do you want to move to another department?",
+                  },
+                  {
+                    type: "list",
+                    name: "dept",
+                    choices: deptList,
+                    message: "Which department should it be moved to?",
+                  },
+                ])
+                .then((ans) => {
+                  let role = ans.role;
+                  let dept = ans.dept;
+                  if (dept == "CANCEL" || role == "CANCEL") {
+                    console.log("\nCancelling change.\n");
+                    chooseEdit();
+                  } else {
+                    p = new Table({
+                      title: `\n Employees assigned \n    to this role`,
+                      columns: [{ name: "Name", alignment: "center" }, ,],
+                    });
+                    connection.query(
+                      `SELECT 
+                      CONCAT(last_name, ", ", first_name) AS 'Name'
+                    FROM 
+                      role 
+                    LEFT JOIN
+                      employee
+                    ON
+                      employee.role_id=role.r_id
+                    WHERE
+                      role_id = "${role.r_id}"
+                    ORDER BY 
+                      last_name`,
+                      (err, res) => {
+                        if (err) throw err;
+                        p.addRows(res);
+                        p.printTable();
+                        //confirm
+                        inquirer
+                          .prompt([
+                            {
+                              type: "confirm",
+                              name: "conf",
+                              message: `\n(NOTE: affected employees listed above)\nPlease confirm: \n ** ${role.Role} ** \n will be assigned to NEW DEPARTMENT \n ** ${dept.name} **\n`,
+                            },
+                          ])
+                          .then((ans) => {
+                            if (ans.conf == false) {
+                              console.log("\nCancelling change.\n");
+                              //cancel, go back
+                              chooseEdit();
+                            } else {
+                              connection.query(
+                                `UPDATE 
+                              role
+                            SET
+                              department_id = ${dept.d_id}
+                            WHERE
+                              r_id = ${role.r_id}`,
+                                (err, res) => {
+                                  if (err) throw err;
+                                  console.log(
+                                    `\nUpdated ${role.Role}'s department to ${dept.name} successfully!\n`
+                                  );
+                                  chooseRoute();
+                                }
+                              );
+                            }
+                          });
+                      }
+                    );
+                  }
+                });
+            }
+          );
           break;
         case "Go back":
           chooseRoute();
@@ -850,50 +1095,3 @@ function chooseDelete() {
       }
     });
 }
-
-// function selectEmployee() {
-//   //choose employee
-// connection.query(
-//   "SELECT e_id, first_name, last_name, title FROM employee LEFT JOIN role ON employee.role_id = role.r_id",
-//   function (err, res) {
-//     if (err) throw err;
-//     let output = [];
-//     for (let line of res) {
-//       var optionData = {
-//         name: `${line.last_name}, ${line.first_name} (${line.title})`,
-//         value: {
-//           id: line.e_id,
-//           last_name: line.last_name,
-//           first_name: line.first_name,
-//           title: line.title,
-//         },
-//       };
-//       output.push(optionData);
-//     }
-//     inquirer
-//       .prompt([
-//         {
-//           type: "list",
-//           message: "Select an employee from the list",
-//           choices: output,
-//           name: "employee",
-//         },
-//       ])
-//       .then(function (selected) {
-//         console.log(selected);
-//         empID = selected.employee.id;
-//       });
-//     }
-//   );
-// }
-// //CHECK if they're anyone's manager
-// //**if yes, alert user and ask if reports should be deleted too
-// //query: delete from employee where id=(selected)
-// //followup, keep reports: update employees set manager_id=(null) where manager_id=(selected)
-// //followup, deleting reports: delete from employee where manager_id=(selected)
-
-// function deleteEmployee(id) {
-//   console.log("it fired");
-//   console.log(id);
-//   //CHECK if they're anyone's manager
-// }
