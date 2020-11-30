@@ -8,6 +8,7 @@ const { Table } = require("console-table-printer");
 // Set the port of our application
 const PORT = process.env.PORT || 8080;
 
+//establish variable for tables
 let p = new Table();
 
 // MySQL DB Connection Information
@@ -23,10 +24,12 @@ const connection = mysql.createConnection({
 // Initiate MySQL Connection.
 connection.connect(function (err) {
   if (err) throw err;
-  console.log("connected as id " + connection.threadId + "\n");
+  console.log("\n\n")
+  //start interface
   chooseRoute();
 });
 
+// MAIN MENU function
 function chooseRoute() {
   inquirer
     .prompt({
@@ -36,6 +39,7 @@ function chooseRoute() {
       choices: ["View", "Edit", "Add", "Delete", "Exit"],
     })
     .then((ans) => {
+      //split by subfunction
       switch (ans.next) {
         case "View":
           chooseView();
@@ -51,8 +55,8 @@ function chooseRoute() {
           break;
         case "Exit":
           console.log("See you later!");
+          //close MySQL connection
           connection.end();
-          //close
           break;
       }
     });
@@ -83,39 +87,47 @@ function chooseView() {
     .then((ans) => {
       switch (ans.query) {
         case "All departments":
+          //set up table instance
           p = new Table({
             title: "All Departments",
             columns: [{ name: "Department Name", alignment: "center" }],
           });
+          //QUERY: department names
           connection.query(
             `SELECT name AS 'Department Name' FROM department`,
             (err, res) => {
               if (err) throw err;
+              //feed query results directly into table, print table
               p.addRows(res);
               console.log("\n");
               p.printTable();
+              //return to main menu
               chooseRoute();
             }
           );
           break;
         case "Utilized budget of a department":
+          //QUERY: department list
           connection.query("SELECT * FROM department", (err, res) => {
+            let deptList = [];
+            for (let line of res) {
+              deptList.push({
+                name: line.name,
+                value: line,
+              });
+            }
+            //ask user to choose department from list
             inquirer
               .prompt([
                 {
                   type: "list",
                   name: "dept",
-                  choices: () => {
-                    const deptList = [];
-                    for (let line of res) {
-                      deptList.push(line.name);
-                    }
-                    return deptList;
-                  },
+                  choices: deptList,
                   message: "Which department would you like to see?",
                 },
               ])
-              .then((res) => {
+              .then((ans) => {
+                //set up table instance
                 p = new Table({
                   title: `Utilized Budget`,
                   columns: [
@@ -123,6 +135,7 @@ function chooseView() {
                     { name: "Total Salary", alignment: "center" },
                   ],
                 });
+                //QUERY: utilized budget
                 connection.query(
                   `SELECT 
                     SUM(salary) AS 'Total Salary',
@@ -138,12 +151,14 @@ function chooseView() {
                   ON
                     employee.role_id=role.r_id
                   WHERE
-                    name = "${res.dept}"`,
+                    department_id = "${ans.dept.d_id}"`,
                   (err, res) => {
                     if (err) throw err;
+                    //feed query results directly into table, print table
                     p.addRows(res);
                     console.log("\n");
                     p.printTable();
+                    //return to main menu
                     chooseRoute();
                   }
                 );
@@ -151,6 +166,7 @@ function chooseView() {
           });
           break;
         case "All Roles":
+          //set up table instance
           p = new Table({
             title: "All Roles (sorted by Title)",
             columns: [
@@ -159,6 +175,7 @@ function chooseView() {
               { name: "Salary", alignment: "center" },
             ],
           });
+          //QUERY: role table
           connection.query(
             `SELECT 
               title AS 'Role', 
@@ -173,6 +190,7 @@ function chooseView() {
               title`,
             (err, res) => {
               if (err) throw err;
+              //feed query results directly into table, print table
               p.addRows(res);
               console.log("\n");
               p.printTable();
@@ -181,31 +199,36 @@ function chooseView() {
           );
           break;
         case "Roles in a department":
+          //QUERY: department list
           connection.query("SELECT * FROM department", (err, res) => {
+            let deptList = [];
+            for (let line of res) {
+              deptList.push({
+                name: line.name,
+                value: line,
+              });
+            }
+            //ask user to choose department from list
             inquirer
               .prompt([
                 {
                   type: "list",
                   name: "dept",
-                  choices: () => {
-                    const deptList = [];
-                    for (let line of res) {
-                      deptList.push(line.name);
-                    }
-                    return deptList;
-                  },
+                  choices: deptList,
                   message: "Which department would you like to see?",
                 },
               ])
-              .then((res) => {
+              .then((ans) => {
+                //set up table instance
                 p = new Table({
-                  title: `All Roles in ${res.dept}`,
+                  title: `All Roles in ${ans.dept.name}`,
                   columns: [
                     { name: "Role", alignment: "center" },
                     { name: "Salary", alignment: "center" },
                     { name: "Employees in Role", alignment: "center" },
                   ],
                 });
+                //QUERY: role table in department
                 connection.query(
                   `SELECT 
                     COUNT(role_id) AS 'Employees in Role',
@@ -222,11 +245,12 @@ function chooseView() {
                   ON
                     employee.role_id=role.r_id
                   WHERE
-                    name = "${res.dept}"
+                    department_id = "${ans.dept.d_id}"
                   GROUP BY 
                     role_id`,
                   (err, res) => {
                     if (err) throw err;
+                    //feed query results directly into table, print table
                     p.addRows(res);
                     console.log("\n");
                     p.printTable();
@@ -237,6 +261,7 @@ function chooseView() {
           });
           break;
         case "All employees":
+          //set up table instance
           p = new Table({
             title: `All Employees`,
             columns: [
@@ -246,6 +271,7 @@ function chooseView() {
               { name: "Salary", alignment: "center" },
             ],
           });
+          //QUERY: employees table
           connection.query(
             `SELECT 
               CONCAT(last_name, ", ", first_name) AS 'Name',
@@ -266,6 +292,7 @@ function chooseView() {
               last_name`,
             (err, res) => {
               if (err) throw err;
+              //feed query results directly into table, print table
               p.addRows(res);
               p.printTable();
               chooseRoute();
@@ -273,31 +300,36 @@ function chooseView() {
           );
           break;
         case "Employees in a department":
+          //QUERY: department list
           connection.query("SELECT * FROM department", (err, res) => {
+            let deptList = [];
+            for (let line of res) {
+              deptList.push({
+                name: line.name,
+                value: line,
+              });
+            }
+            //ask user to choose department from list
             inquirer
               .prompt([
                 {
                   type: "list",
                   name: "dept",
-                  choices: () => {
-                    const deptList = [];
-                    for (let line of res) {
-                      deptList.push(line.name);
-                    }
-                    return deptList;
-                  },
+                  choices: deptList,
                   message: "Which department would you like to see?",
                 },
               ])
-              .then((res) => {
+              .then((ans) => {
+                //set up table instance
                 p = new Table({
-                  title: `Employees in ${res.dept}`,
+                  title: `Employees in ${ans.dept.name}`,
                   columns: [
                     { name: "Name", alignment: "center" },
                     { name: "Role", alignment: "center" },
                     { name: "Salary", alignment: "center" },
                   ],
                 });
+                //QUERY: employee table in department
                 connection.query(
                   `SELECT 
                     CONCAT(last_name, ", ", first_name) AS 'Name',
@@ -313,12 +345,13 @@ function chooseView() {
                     employee
                   ON
                     employee.role_id=role.r_id
-                    WHERE
-                      name = "${res.dept}"
+                  WHERE
+                    department_id = "${ans.dept.d_id}"
                   ORDER BY 
                     last_name`,
                   (err, res) => {
                     if (err) throw err;
+                    //feed query results directly into table, print table
                     p.addRows(res);
                     console.log("\n");
                     p.printTable();
@@ -329,6 +362,7 @@ function chooseView() {
           });
           break;
         case "Employees reporting to same manager":
+          //QUERY: employees who have a direct report (determined by "SELECT DISTINCT manager_id FROM employee")
           connection.query(
             `SELECT 
               CONCAT(last_name, ", ", first_name) AS full_name,
@@ -376,6 +410,7 @@ function chooseView() {
                 ])
                 .then((ans) => {
                   let mgr = ans.mgr;
+                  //set up table instance
                   p = new Table({
                     title: `Employees reporting to ${mgr.full_name}`,
                     columns: [
@@ -411,6 +446,7 @@ function chooseView() {
                       last_name`,
                     (err, res) => {
                       if (err) throw err;
+                      //feed query results directly into table, print table
                       p.addRows(res);
                       console.log("\n");
                       p.printTable();
@@ -698,6 +734,7 @@ function chooseEdit() {
                     console.log("\nCancelling change.\n");
                     chooseEdit();
                   } else {
+                    //set up table instance
                     p = new Table({
                       title: `\n\nEmployees assigned \n   to this role`,
                       columns: [{ name: "Name", alignment: "center" }, ,],
@@ -717,6 +754,7 @@ function chooseEdit() {
                       last_name`,
                       (err, res) => {
                         if (err) throw err;
+                        //feed query results directly into table, print table
                         p.addRows(res);
                         p.printTable();
                         //confirm
@@ -819,6 +857,7 @@ function chooseEdit() {
                     console.log("\nCancelling change.\n");
                     chooseEdit();
                   } else {
+                    //set up table instance
                     p = new Table({
                       title: `\n\nEmployees assigned \n   to this role`,
                       columns: [{ name: "Name", alignment: "center" }, ,],
@@ -838,6 +877,7 @@ function chooseEdit() {
                         last_name`,
                       (err, res) => {
                         if (err) throw err;
+                        //feed query results directly into table, print table
                         p.addRows(res);
                         p.printTable();
                         //confirm
@@ -945,7 +985,7 @@ function chooseAdd() {
               roleList.push({ name: "(CANCEL)", value: "CANCEL" });
               for (let line of res[1]) {
                 mgrList.push({
-                  name: `${line.full_name} (title: $${line.title})`,
+                  name: `${line.full_name} (title: ${line.title})`,
                   value: { name: line.full_name, e_id: line.e_id },
                 });
               }
@@ -1172,6 +1212,7 @@ function chooseDelete() {
                       (err, res) => {
                         if (err) throw err;
                         if (res != "") {
+                          //set up table instance
                           p = new Table({
                             title: `Employees managed by ${emp.full_name}`,
                             columns: [
@@ -1180,6 +1221,7 @@ function chooseDelete() {
                               { name: "Department", alignment: "center" },
                             ],
                           });
+                          //feed query results directly into table, print table
                           p.addRows(res);
                           console.log("\n");
                           p.printTable();
@@ -1282,10 +1324,12 @@ function chooseDelete() {
                       (err, res) => {
                         if (err) throw err;
                         if (res != "") {
+                          //set up table instance
                           p = new Table({
                             title: `\n\nEmployees assigned \n   to this role`,
                             columns: [{ name: "Name", alignment: "center" }, ,],
                           });
+                          //feed query results directly into table, print table
                           p.addRows(res);
                           p.printTable();
                           console.log(
@@ -1379,10 +1423,12 @@ function chooseDelete() {
                       (err, res) => {
                         if (err) throw err;
                         if (res != "") {
+                          //set up table instance
                           p = new Table({
                             title: `\n\n  Roles assigned \nto this department`,
                             columns: [{ name: "Title", alignment: "center" }],
                           });
+                          //feed query results directly into table, print table
                           p.addRows(res);
                           p.printTable();
                           console.log(
