@@ -84,7 +84,7 @@ function chooseView() {
       switch (ans.query) {
         case "All departments":
           p = new Table({
-            title: "All Departments",
+            title: "\n\nAll Departments",
             columns: [{ name: "Department Name", alignment: "center" }],
           });
           connection.query(
@@ -116,7 +116,7 @@ function chooseView() {
               ])
               .then((res) => {
                 p = new Table({
-                  title: `Utilized Budget`,
+                  title: `\n\nUtilized Budget`,
                   columns: [
                     { name: "Department", alignment: "center" },
                     { name: "Total Salary", alignment: "center" },
@@ -150,7 +150,7 @@ function chooseView() {
           break;
         case "All Roles":
           p = new Table({
-            title: "All Roles (sorted by Title)",
+            title: "\n\nAll Roles (sorted by Title)",
             columns: [
               { name: "Role", alignment: "center" },
               { name: "Department", alignment: "center" },
@@ -196,7 +196,7 @@ function chooseView() {
               ])
               .then((res) => {
                 p = new Table({
-                  title: `All Roles in ${res.dept}`,
+                  title: `\n\nAll Roles in ${res.dept}`,
                   columns: [
                     { name: "Role", alignment: "center" },
                     { name: "Salary", alignment: "center" },
@@ -234,7 +234,7 @@ function chooseView() {
           break;
         case "All employees":
           p = new Table({
-            title: `All Employees`,
+            title: `\n\nAll Employees`,
             columns: [
               { name: "Name", alignment: "center" },
               { name: "Role", alignment: "center" },
@@ -287,7 +287,7 @@ function chooseView() {
               ])
               .then((res) => {
                 p = new Table({
-                  title: `Employees in ${res.dept}`,
+                  title: `\n\nEmployees in ${res.dept}`,
                   columns: [
                     { name: "Name", alignment: "center" },
                     { name: "Role", alignment: "center" },
@@ -372,7 +372,7 @@ function chooseView() {
                 .then((ans) => {
                   let mgr = ans.mgr;
                   p = new Table({
-                    title: `Employees reporting to ${mgr.full_name}`,
+                    title: `\n\nEmployees reporting to ${mgr.full_name}`,
                     columns: [
                       { name: "Name", alignment: "center" },
                       { name: "Role", alignment: "center" },
@@ -647,81 +647,110 @@ function chooseEdit() {
           );
           break;
         case "Update salary of role":
-          // connection.query(
-          //   `SELECT 
-          //     title AS 'Role', 
-          //     name AS 'Department', 
-          //     salary,
-          //     r_id 
-          //   FROM 
-          //     role 
-          //   LEFT JOIN 
-          //     department 
-          //   ON 
-          //     role.department_id = department.d_id 
-          //   ORDER BY 
-          //     name ASC, 
-          //     title ASC`,
-          //   (err, res) => {
-          //     let roleList = [];
-          //     for (let line of res) {
-          //       roleList.push({
-          //         name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
-          //         value: line,
-          //       });
-          //     }
-          //     roleList.push({ full_name: "(CANCEL)", value: "CANCEL" });
-          //     inquirer
-          //       .prompt([
-          //         {
-          //           type: "list",
-          //           name: "role",
-          //           choices: roleList,
-          //           message: "Which role's salary would you like to change?",
-          //         },
-          //       ])
-          //       .then((ans) => {
-          //         let role = ans.role;
-          //         if (emp == "CANCEL" || role == "CANCEL") {
-          //           console.log("\nCancelling change.\n");
-          //           chooseEdit();
-          //         } else {
-          //           //confirm
-          //           inquirer
-          //             .prompt([
-          //               {
-          //                 type: "confirm",
-          //                 name: "conf",
-          //                 message: `Please confirm: \n ** ${emp.full_name} ** \n will be assigned to NEW ROLE \n ** ${role.Role} in ${role.Department} (salary $${role.salary}) **\n`,
-          //               },
-          //             ])
-          //             .then((ans) => {
-          //               if (ans.conf == false) {
-          //                 console.log("\nCancelling change.\n");
-          //                 //cancel, go back
-          //                 chooseEdit();
-          //               } else {
-          //                 connection.query(
-          //                   `UPDATE 
-          //                     employee
-          //                   SET
-          //                     role_id = ${role.r_id}
-          //                   WHERE
-          //                     e_id = ${emp.e_id}`,
-          //                   (err, res) => {
-          //                     if (err) throw err;
-          //                     console.log(
-          //                       `\nUpdated ${emp.full_name}'s role to ${role.Role} successfully!\n`
-          //                     );
-          //                     chooseRoute();
-          //                   }
-          //                 );
-          //               }
-          //             });
-          //         }
-          //       });
-          //   }
-          // );
+          connection.query(
+            `SELECT 
+              title AS 'Role', 
+              name AS 'Department', 
+              salary,
+              r_id 
+            FROM 
+              role 
+            LEFT JOIN 
+              department 
+            ON 
+              role.department_id = department.d_id 
+            ORDER BY 
+              name ASC, 
+              title ASC`,
+            (err, res) => {
+              let roleList = [];
+              for (let line of res) {
+                roleList.push({
+                  name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+                  value: line,
+                });
+              }
+              roleList.push({ full_name: "(CANCEL)", value: "CANCEL" });
+              inquirer
+                .prompt([
+                  {
+                    type: "list",
+                    name: "role",
+                    choices: roleList,
+                    message: "Which role do you want to update the salary for?",
+                  },
+                  {
+                    type: "number",
+                    name: "sal",
+                    message: "What should its new salary be?",
+                  },
+                ])
+                .then((ans) => {
+                  let role = ans.role;
+                  let sal = ans.sal;
+                  if (role == "CANCEL") {
+                    console.log("\nCancelling change.\n");
+                    chooseEdit();
+                  } else {
+                    p = new Table({
+                      title: `\n\nEmployees assigned \n   to this role`,
+                      columns: [{ name: "Name", alignment: "center" }, ,],
+                    });
+                    connection.query(
+                      `SELECT 
+                      CONCAT(last_name, ", ", first_name) AS 'Name'
+                    FROM 
+                      role 
+                    LEFT JOIN
+                      employee
+                    ON
+                      employee.role_id=role.r_id
+                    WHERE
+                      role_id = "${role.r_id}"
+                    ORDER BY 
+                      last_name`,
+                      (err, res) => {
+                        if (err) throw err;
+                        p.addRows(res);
+                        p.printTable();
+                        //confirm
+                        inquirer
+                          .prompt([
+                            {
+                              type: "confirm",
+                              name: "conf",
+                              message: `\n(NOTE: affected employees listed above)\nPlease confirm: \n ** ${role.Role} ** \n will be updated to reflect salary \n ** $${sal} **\n`,
+                            },
+                          ])
+                          .then((ans) => {
+                            if (ans.conf == false) {
+                              console.log("\nCancelling change.\n");
+                              //cancel, go back
+                              chooseEdit();
+                            } else {
+                              connection.query(
+                                `UPDATE 
+                                  role
+                                SET
+                                  salary = ${sal}
+                                WHERE
+                                  r_id = ${role.r_id}`,
+                                (err, res) => {
+                                  if (err) throw err;
+                                  console.log(
+                                    `\nUpdated ${role.Role}'s salary to ${sal} successfully!\n`
+                                  );
+                                  chooseRoute();
+                                }
+                              );
+                            }
+                          });
+                      }
+                    );
+                  }
+                });
+            }
+          );
           break;
         case "Update department of role":
           connection.query(
@@ -785,7 +814,7 @@ function chooseEdit() {
                     chooseEdit();
                   } else {
                     p = new Table({
-                      title: `\n Employees assigned \n    to this role`,
+                      title: `\n\nEmployees assigned \n   to this role`,
                       columns: [{ name: "Name", alignment: "center" }, ,],
                     });
                     connection.query(
