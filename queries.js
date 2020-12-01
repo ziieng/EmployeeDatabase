@@ -25,17 +25,12 @@ class Options {
         ${constraint}`;
     }
     let query = `SELECT 
-        CONCAT(last_name, ", ", first_name) AS 'Name',
         title AS 'Role',
         name AS 'Department',
-        salary AS 'Salary',
-        e_id
+        FORMAT(salary,2) AS 'Salary',
+        r_id
       FROM 
-        employee 
-      LEFT JOIN
         role
-      ON
-        employee.role_id=role.r_id
       LEFT JOIN 
         department 
       ON 
@@ -58,7 +53,7 @@ class Options {
         CONCAT(last_name, ", ", first_name) AS 'Name',
         title AS 'Role',
         name AS 'Department',
-        salary AS 'Salary',
+        FORMAT(salary,2) AS 'Salary',
         e_id
       FROM 
         employee 

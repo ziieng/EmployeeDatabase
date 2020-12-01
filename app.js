@@ -542,14 +542,14 @@ async function chooseEdit() {
             let roleList = [];
             for (let line of res[0]) {
               empList.push({
-                name: `${line.Name} (${line.Role} in ${line.Department} - salary $${line.salary})`,
+                name: `${line.Name} (${line.Role} in ${line.Department} - salary $${line.Salary})`,
                 value: { Name: line.Name, e_id: line.e_id },
               });
             }
             empList.push({ name: "(CANCEL)", value: "CANCEL" });
             for (let line of res[1]) {
               roleList.push({
-                name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+                name: `${line.Role} in ${line.Department} - salary $${line.Salary}`,
                 value: line,
               });
             }
@@ -584,7 +584,7 @@ async function chooseEdit() {
                       {
                         type: "confirm",
                         name: "conf",
-                        message: `Please confirm: \n ** ${emp.Name} ** \n will be assigned to NEW ROLE \n ** ${role.Role} in ${role.Department} (salary $${role.salary}) **\n`,
+                        message: `Please confirm: \n ** ${emp.Name} ** \n will be assigned to NEW ROLE \n ** ${role.Role} in ${role.Department} (salary $${role.Salary}) **\n`,
                       },
                     ])
                     .then((ans) => {
@@ -622,7 +622,7 @@ async function chooseEdit() {
             let roleList = [];
             for (let line of res) {
               roleList.push({
-                name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+                name: `${line.Role} in ${line.Department} - salary $${line.Salary}`,
                 value: line,
               });
             }
@@ -637,14 +637,15 @@ async function chooseEdit() {
                   message: "Which role do you want to update the salary for?",
                 },
                 {
-                  type: "number",
+                  type: "input",
                   name: "sal",
                   message: "What should its new salary be?",
+                  validate: (input) => (input == ""|| ! parseFloat(input)) ? false : true,
                 },
               ])
               .then((ans) => {
                 let role = ans.role;
-                let sal = ans.sal;
+                let sal = toFixed(ans.sal,2);
                 if (role == "CANCEL") {
                   console.log("\nCancelling change.\n");
                   chooseEdit();
@@ -716,7 +717,7 @@ async function chooseEdit() {
             let deptList = [];
             for (let line of res[0]) {
               roleList.push({
-                name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+                name: `${line.Role} in ${line.Department} - salary $${line.Salary}`,
                 value: line,
               });
             }
@@ -952,6 +953,7 @@ async function chooseAdd() {
                   type: "number",
                   name: "salary",
                   message: "What is the salary for this role?",
+                  validate: (input) => (input == ""|| ! parseFloat(input)) ? false : true
                 },
                 {
                   type: "list",
@@ -1126,7 +1128,7 @@ async function chooseDelete() {
             let roleList = [];
             for (let line of res) {
               roleList.push({
-                name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+                name: `${line.Role} in ${line.Department} - salary $${line.Salary}`,
                 value: line,
               });
             }
