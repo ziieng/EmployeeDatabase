@@ -14,7 +14,7 @@ let p = new Table();
 // MySQL DB Connection Information
 const connection = mysql.createConnection({
   host: "localhost",
-  port: 3306,
+  port: process.env.MYSQL_PORT,
   user: "root",
   password: process.env.MYSQL_PASSWORD,
   database: "empTrack_DB",
@@ -24,13 +24,29 @@ const connection = mysql.createConnection({
 // Initiate MySQL Connection.
 connection.connect(function (err) {
   if (err) throw err;
-  console.log("\n\n")
+  console.log("\n\n");
   //start interface
   chooseRoute();
 });
 
+console.log(`\n\n\n
+  ███████╗███╗   ███╗██████╗ ██╗      ██████╗ ██╗   ██╗███████╗███████╗    
+  ██╔════╝████╗ ████║██╔══██╗██║     ██╔═══██╗╚██╗ ██╔╝██╔════╝██╔════╝    
+  █████╗  ██╔████╔██║██████╔╝██║     ██║   ██║ ╚████╔╝ █████╗  █████╗      
+  ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║     ██║   ██║  ╚██╔╝  ██╔══╝  ██╔══╝      
+  ███████╗██║ ╚═╝ ██║██║     ███████╗╚██████╔╝   ██║   ███████╗███████╗    
+  ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝ ╚═════╝    ╚═╝   ╚══════╝╚══════╝    
+                                                                          
+          ██████╗  █████╗ ████████╗ █████╗ ██████╗  █████╗ ███████╗███████╗
+          ██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗██╔════╝██╔════╝
+          ██║  ██║███████║   ██║   ███████║██████╔╝███████║███████╗█████╗  
+          ██║  ██║██╔══██║   ██║   ██╔══██║██╔══██╗██╔══██║╚════██║██╔══╝  
+          ██████╔╝██║  ██║   ██║   ██║  ██║██████╔╝██║  ██║███████║███████╗
+          ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝`);
+
 // MAIN MENU function
 function chooseRoute() {
+  console.log("");
   inquirer
     .prompt({
       name: "next",
@@ -63,6 +79,7 @@ function chooseRoute() {
 }
 
 function chooseView() {
+  console.log("");
   inquirer
     .prompt({
       name: "query",
@@ -117,6 +134,7 @@ function chooseView() {
               });
             }
             //ask user to choose department from list
+            console.log("");
             inquirer
               .prompt([
                 {
@@ -209,6 +227,7 @@ function chooseView() {
               });
             }
             //ask user to choose department from list
+            console.log("");
             inquirer
               .prompt([
                 {
@@ -294,6 +313,7 @@ function chooseView() {
               if (err) throw err;
               //feed query results directly into table, print table
               p.addRows(res);
+              console.log("\n");
               p.printTable();
               chooseRoute();
             }
@@ -310,6 +330,7 @@ function chooseView() {
               });
             }
             //ask user to choose department from list
+            console.log("");
             inquirer
               .prompt([
                 {
@@ -399,6 +420,7 @@ function chooseView() {
                 });
               }
               mgrList.push({ name: "(CANCEL)", value: "CANCEL" });
+              console.log("");
               inquirer
                 .prompt([
                   {
@@ -466,6 +488,7 @@ function chooseView() {
 }
 
 function chooseEdit() {
+  console.log("");
   inquirer
     .prompt({
       name: "query",
@@ -512,6 +535,7 @@ function chooseEdit() {
                 });
               }
               empList.push({ name: "(CANCEL)", value: "CANCEL" });
+              console.log("");
               inquirer
                 .prompt([
                   {
@@ -540,6 +564,7 @@ function chooseEdit() {
                     chooseEdit();
                   } else {
                     //confirm
+                    console.log("");
                     inquirer
                       .prompt([
                         {
@@ -629,6 +654,7 @@ function chooseEdit() {
                 });
               }
               roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+              console.log("");
               inquirer
                 .prompt([
                   {
@@ -652,6 +678,7 @@ function chooseEdit() {
                     chooseEdit();
                   } else {
                     //confirm
+                    console.log("");
                     inquirer
                       .prompt([
                         {
@@ -713,6 +740,7 @@ function chooseEdit() {
                 });
               }
               roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+              console.log("");
               inquirer
                 .prompt([
                   {
@@ -756,8 +784,10 @@ function chooseEdit() {
                         if (err) throw err;
                         //feed query results directly into table, print table
                         p.addRows(res);
+                        console.log("\n");
                         p.printTable();
                         //confirm
+                        console.log("");
                         inquirer
                           .prompt([
                             {
@@ -834,6 +864,7 @@ function chooseEdit() {
                 });
               }
               deptList.push({ name: "(CANCEL)", value: "CANCEL" });
+              console.log("");
               inquirer
                 .prompt([
                   {
@@ -879,8 +910,10 @@ function chooseEdit() {
                         if (err) throw err;
                         //feed query results directly into table, print table
                         p.addRows(res);
+                        console.log("\n");
                         p.printTable();
                         //confirm
+                        console.log("");
                         inquirer
                           .prompt([
                             {
@@ -928,6 +961,7 @@ function chooseEdit() {
 }
 
 function chooseAdd() {
+  console.log("");
   inquirer
     .prompt({
       name: "query",
@@ -944,7 +978,7 @@ function chooseAdd() {
     .then((ans) => {
       switch (ans.query) {
         case "New Employee":
-          console.log("NEW EMPLOYEE");
+          console.log("\nNEW EMPLOYEE");
           let emp = {
             first_name: "",
             last_name: "",
@@ -990,7 +1024,7 @@ function chooseAdd() {
                 });
               }
               mgrList.push({ name: "(CANCEL)", value: "CANCEL" });
-
+              console.log("");
               inquirer
                 .prompt([
                   {
@@ -1018,6 +1052,7 @@ function chooseAdd() {
                     emp.first_name = ans1.first;
                     emp.last_name = ans1.last;
                     emp.role_id = parseInt(ans1.role.r_id);
+                    console.log("");
                     inquirer
                       .prompt([
                         {
@@ -1051,7 +1086,7 @@ function chooseAdd() {
           );
           break;
         case "New Role":
-          console.log("NEW ROLE");
+          console.log("\nNEW ROLE");
           connection.query("SELECT * FROM department", (err, res) => {
             let deptList = [];
             for (let line of res) {
@@ -1061,6 +1096,7 @@ function chooseAdd() {
               });
             }
             deptList.push({ name: "(CANCEL)", value: "CANCEL" });
+            console.log("");
             inquirer
               .prompt([
                 {
@@ -1099,7 +1135,8 @@ function chooseAdd() {
           });
           break;
         case "New Department":
-          console.log("NEW DEPARTMENT");
+          console.log("\nNEW DEPARTMENT");
+          console.log("");
           inquirer
             .prompt([
               {
@@ -1130,6 +1167,7 @@ function chooseAdd() {
 }
 
 function chooseDelete() {
+  console.log("");
   inquirer
     .prompt({
       name: "query",
@@ -1175,6 +1213,7 @@ function chooseDelete() {
                 });
               }
               empList.push({ name: "(CANCEL)", value: "CANCEL" });
+              console.log("");
               inquirer
                 .prompt([
                   {
@@ -1231,6 +1270,7 @@ function chooseDelete() {
                           chooseRoute();
                         } else {
                           //confirm
+                          console.log("");
                           inquirer
                             .prompt([
                               {
@@ -1293,6 +1333,7 @@ function chooseDelete() {
                 });
               }
               roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+              console.log("");
               inquirer
                 .prompt([
                   {
@@ -1331,6 +1372,7 @@ function chooseDelete() {
                           });
                           //feed query results directly into table, print table
                           p.addRows(res);
+                          console.log("\n");
                           p.printTable();
                           console.log(
                             "\nEmployees above are assigned to chosen role. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
@@ -1338,6 +1380,7 @@ function chooseDelete() {
                           chooseRoute();
                         } else {
                           //confirm
+                          console.log("");
                           inquirer
                             .prompt([
                               {
@@ -1392,6 +1435,7 @@ function chooseDelete() {
                 });
               }
               deptList.push({ name: "(CANCEL)", value: "CANCEL" });
+              console.log("");
               inquirer
                 .prompt([
                   {
@@ -1430,6 +1474,7 @@ function chooseDelete() {
                           });
                           //feed query results directly into table, print table
                           p.addRows(res);
+                          console.log("\n");
                           p.printTable();
                           console.log(
                             "\nRoles above are assigned to chosen department. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
@@ -1437,6 +1482,7 @@ function chooseDelete() {
                           chooseRoute();
                         } else {
                           //confirm
+                          console.log("");
                           inquirer
                             .prompt([
                               {
