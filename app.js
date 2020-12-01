@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 8080;
 
 //establish variables for tables
 let p = new Table();
-let call = ""
+let call = "";
 
 console.log(`\n\n\n
   ███████╗███╗   ███╗██████╗ ██╗      ██████╗ ██╗   ██╗███████╗███████╗    
@@ -113,7 +113,7 @@ async function chooseView() {
             title: "All Departments",
             columns: [{ name: "Department Name", alignment: "center" }],
           });
-          //QUERY: department names
+          //QUERY: department names; only time this call is used
           connection.query(
             `SELECT name AS 'Department Name' FROM department ORDER BY name`,
             (err, res) => {
@@ -129,7 +129,8 @@ async function chooseView() {
           break;
         case "Utilized budget of a department":
           //QUERY: department list
-          connection.query("SELECT * FROM department ORDER BY name", (err, res) => {
+          call = Lister.departmentList();
+          connection.query(call, (err, res) => {
             let deptList = [];
             for (let line of res) {
               deptList.push({
@@ -157,7 +158,7 @@ async function chooseView() {
                     { name: "Total Salary", alignment: "center" },
                   ],
                 });
-                //QUERY: utilized budget
+                //QUERY: utilized budget, only time this call is used
                 connection.query(
                   `SELECT 
                     SUM(salary) AS 'Total Salary',
@@ -196,33 +197,23 @@ async function chooseView() {
               { name: "Department", alignment: "center" },
               { name: "Salary", alignment: "center" },
             ],
+            disabledColumns: ["r_id"],
           });
           //QUERY: role table
-          connection.query(
-            `SELECT 
-              title AS 'Role', 
-              name AS 'Department', 
-              salary AS 'Salary' 
-            FROM 
-              role 
-            LEFT JOIN 
-              department 
-            ON role.department_id = department.d_id 
-            ORDER BY 
-              title`,
-            (err, res) => {
-              if (err) throw err;
-              //feed query results directly into table, print table
-              p.addRows(res);
-              console.log("\n");
-              p.printTable();
-              chooseRoute();
-            }
-          );
+          call = Lister.roleList("", "title ASC");
+          connection.query(call, (err, res) => {
+            if (err) throw err;
+            //feed query results directly into table, print table
+            p.addRows(res);
+            console.log("\n");
+            p.printTable();
+            chooseRoute();
+          });
           break;
         case "Roles in a department":
           //QUERY: department list
-          connection.query("SELECT * FROM department", (err, res) => {
+          call = Lister.departmentList();
+          connection.query(call, (err, res) => {
             let deptList = [];
             for (let line of res) {
               deptList.push({
@@ -251,7 +242,7 @@ async function chooseView() {
                     { name: "Employees in Role", alignment: "center" },
                   ],
                 });
-                //QUERY: role table in department
+                //QUERY: role count in department, only time this call is used
                 connection.query(
                   `SELECT 
                     COUNT(role_id) AS 'Employees in Role',
@@ -293,24 +284,22 @@ async function chooseView() {
               { name: "Department", alignment: "center" },
               { name: "Salary", alignment: "center" },
             ],
-            disabledColumns:["e_id"]
+            disabledColumns: ["e_id"],
           });
           //QUERY: employees table
-          call = Lister.employeeList("","last_name ASC")
-          connection.query(call,
-            (err, res) => {
-              if (err) throw err;
-              //feed query results directly into table, print table
-              p.addRows(res);
-              console.log("\n");
-              p.printTable();
-              chooseRoute();
-            }
-          );
+          call = Lister.employeeList("", "last_name ASC");
+          connection.query(call, (err, res) => {
+            if (err) throw err;
+            //feed query results directly into table, print table
+            p.addRows(res);
+            console.log("\n");
+            p.printTable();
+            chooseRoute();
+          });
           break;
         case "Employees in a department":
           //QUERY: department list
-          call = Lister.departmentList()
+          call = Lister.departmentList();
           connection.query(call, (err, res) => {
             let deptList = [];
             for (let line of res) {
@@ -339,70 +328,75 @@ async function chooseView() {
                     { name: "Role", alignment: "center" },
                     { name: "Salary", alignment: "center" },
                   ],
-                  disabledColumns:["Department","e_id"]
+                  disabledColumns: ["Department", "e_id"],
                 });
                 //QUERY: employee table in department
-                call = Lister.employeeList(`department_id = ${ans.dept.d_id}`,"last_name ASC")
-                connection.query(call, (err, res) => {
-                    if (err) throw err;
-                    //feed query results directly into table, print table
-                    p.addRows(res);
-                    console.log("\n");
-                    p.printTable();
-                    chooseRoute();
-                  }
+                call = Lister.employeeList(
+                  `department_id = ${ans.dept.d_id}`,
+                  "last_name ASC"
                 );
+                connection.query(call, (err, res) => {
+                  if (err) throw err;
+                  //feed query results directly into table, print table
+                  p.addRows(res);
+                  console.log("\n");
+                  p.printTable();
+                  chooseRoute();
+                });
               });
           });
           break;
         case "Employees reporting to same manager":
           //QUERY: employees who have a direct report
-          call = Lister.employeeList(`e_id IN (SELECT DISTINCT manager_id FROM employee)`,"'Department' ASC, last_name ASC")
+          call = Lister.employeeList(
+            `e_id IN (SELECT DISTINCT manager_id FROM employee)`,
+            "'Department' ASC, last_name ASC"
+          );
           connection.query(call, (err, res) => {
-              //make result into an array for the inquirer prompt
-              let mgrList = [
+            //make result into an array for the inquirer prompt
+            let mgrList = [
+              {
+                name: "(No manager assigned)",
+                value: { Name: "(No manager assigned)", e_id: "NULL" },
+              },
+            ];
+            for (let line of res) {
+              mgrList.push({
+                name: `${line.Name} (${line.Role} in ${line.Department})`,
+                value: { Name: line.Name, e_id: line.e_id },
+              });
+            }
+            mgrList.push({ name: "(CANCEL)", value: "CANCEL" });
+            console.log("");
+            //ask user which manager they want to see
+            inquirer
+              .prompt([
                 {
-                  name: "(No manager assigned)",
-                  value: { Name: "(No manager assigned)", e_id: "NULL" },
+                  type: "list",
+                  name: "mgr",
+                  choices: mgrList,
+                  message: "Which manager's team would you like to see?",
                 },
-              ];
-              for (let line of res) {
-                mgrList.push({
-                  name: `${line.Name} (${line.Role} in ${line.Department})`,
-                  value: { Name: line.Name, e_id: line.e_id },
+              ])
+              .then((ans) => {
+                let mgr = ans.mgr;
+                //set up table instance
+                p = new Table({
+                  title: `Employees reporting to ${mgr.Name}`,
+                  columns: [
+                    { name: "Name", alignment: "center" },
+                    { name: "Role", alignment: "center" },
+                    { name: "Department", alignment: "center" },
+                  ],
                 });
-              }
-              mgrList.push({ name: "(CANCEL)", value: "CANCEL" });
-              console.log("");
-              //ask user which manager they want to see
-              inquirer
-                .prompt([
-                  {
-                    type: "list",
-                    name: "mgr",
-                    choices: mgrList,
-                    message: "Which manager's team would you like to see?",
-                  },
-                ])
-                .then((ans) => {
-                  let mgr = ans.mgr;
-                  //set up table instance
-                  p = new Table({
-                    title: `Employees reporting to ${mgr.Name}`,
-                    columns: [
-                      { name: "Name", alignment: "center" },
-                      { name: "Role", alignment: "center" },
-                      { name: "Department", alignment: "center" },
-                    ],
-                  });
-                  //Adjust employee ID variable to reflect MySQL's syntax needs
-                  if (mgr.e_id == "NULL") {
-                    mgr.e_id = "IS NULL";
-                  } else {
-                    mgr.e_id = `= ${mgr.e_id}`;
-                  }
-                  connection.query(
-                    `SELECT 
+                //Adjust employee ID variable to reflect MySQL's syntax needs
+                if (mgr.e_id == "NULL") {
+                  mgr.e_id = "IS NULL";
+                } else {
+                  mgr.e_id = `= ${mgr.e_id}`;
+                }
+                connection.query(
+                  `SELECT 
                       CONCAT(last_name, ", ", first_name) AS 'Name',
                       title AS 'Role',
                       name AS 'Department'
@@ -420,18 +414,17 @@ async function chooseView() {
                       manager_id ${mgr.e_id}
                     ORDER BY 
                       last_name`,
-                    (err, res) => {
-                      if (err) throw err;
-                      //feed query results directly into table, print table
-                      p.addRows(res);
-                      console.log("\n");
-                      p.printTable();
-                      chooseRoute();
-                    }
-                  );
-                });
-            }
-          );
+                  (err, res) => {
+                    if (err) throw err;
+                    //feed query results directly into table, print table
+                    p.addRows(res);
+                    console.log("\n");
+                    p.printTable();
+                    chooseRoute();
+                  }
+                );
+              });
+          });
           break;
         case "Go back":
           chooseRoute();
@@ -462,161 +455,217 @@ async function chooseEdit() {
       switch (ans.query) {
         case "Update employee's manager":
           //QUERY: employees list
-          call = Lister.employeeList("","name ASC, last_name ASC")
+          call = Lister.employeeList("", "name ASC, last_name ASC");
           connection.query(call, (err, res) => {
-              let empList = [];
-              for (let line of res) {
-                empList.push({
-                  name: `${line.Name} (${line.Role} in ${line.Department})`,
-                  value: { Name: line.Name, e_id: line.e_id },
-                });
-              }
-              empList.push({ name: "(CANCEL)", value: "CANCEL" });
-              console.log("");
-              inquirer
-                .prompt([
-                  {
-                    type: "list",
-                    name: "emp",
-                    choices: empList,
-                    message: "Which employee would you like to edit?",
-                  },
-                  {
-                    type: "list",
-                    name: "mgr",
-                    choices: empList,
-                    message: "Which employee should be their new manager?",
-                  },
-                ])
-                .then((ans) => {
-                  let emp = ans.emp;
-                  let mgr = ans.mgr;
-                  if (emp == "CANCEL" || mgr == "CANCEL") {
-                    console.log("\nCancelling change.\n");
-                    chooseEdit();
-                  } else if (emp == mgr) {
-                    console.log(
-                      "\nAn employee can't be assigned as their own manager. Please try again.\n"
-                    );
-                    chooseEdit();
-                  } else {
-                    //confirm
-                    console.log("");
-                    inquirer
-                      .prompt([
-                        {
-                          type: "confirm",
-                          name: "conf",
-                          message: `Please confirm: \n ** ${mgr.Name} ** \n will be assigned as the NEW MANAGER FOR\n ** ${emp.Name} **\n`,
-                        },
-                      ])
-                      .then((ans) => {
-                        if (ans.conf == false) {
-                          console.log("\nCancelling change.\n");
-                          //cancel, go back
-                          chooseEdit();
-                        } else {
-                          //QUERY: UPDATE: manager_id
-                          connection.query(
-                            `UPDATE 
+            let empList = [];
+            for (let line of res) {
+              empList.push({
+                name: `${line.Name} (${line.Role} in ${line.Department})`,
+                value: { Name: line.Name, e_id: line.e_id },
+              });
+            }
+            empList.push({ name: "(CANCEL)", value: "CANCEL" });
+            console.log("");
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  name: "emp",
+                  choices: empList,
+                  message: "Which employee would you like to edit?",
+                },
+                {
+                  type: "list",
+                  name: "mgr",
+                  choices: empList,
+                  message: "Which employee should be their new manager?",
+                },
+              ])
+              .then((ans) => {
+                let emp = ans.emp;
+                let mgr = ans.mgr;
+                if (emp == "CANCEL" || mgr == "CANCEL") {
+                  console.log("\nCancelling change.\n");
+                  chooseEdit();
+                } else if (emp == mgr) {
+                  console.log(
+                    "\nAn employee can't be assigned as their own manager. Please try again.\n"
+                  );
+                  chooseEdit();
+                } else {
+                  //confirm
+                  console.log("");
+                  inquirer
+                    .prompt([
+                      {
+                        type: "confirm",
+                        name: "conf",
+                        message: `Please confirm: \n ** ${mgr.Name} ** \n will be assigned as the NEW MANAGER FOR\n ** ${emp.Name} **\n`,
+                      },
+                    ])
+                    .then((ans) => {
+                      if (ans.conf == false) {
+                        console.log("\nCancelling change.\n");
+                        //cancel, go back
+                        chooseEdit();
+                      } else {
+                        //QUERY: UPDATE: manager_id
+                        connection.query(
+                          `UPDATE 
                               employee
                             SET
                               manager_id = ${mgr.e_id}
                             WHERE
                               e_id = ${emp.e_id}`,
-                            (err, res) => {
-                              if (err) throw err;
-                              console.log(
-                                `\nUpdated ${emp.Name}'s manager to ${mgr.Name} successfully!\n`
-                              );
-                              chooseRoute();
-                            }
-                          );
-                        }
-                      });
-                  }
-                });
-            }
-          );
+                          (err, res) => {
+                            if (err) throw err;
+                            console.log(
+                              `\nUpdated ${emp.Name}'s manager to ${mgr.Name} successfully!\n`
+                            );
+                            chooseRoute();
+                          }
+                        );
+                      }
+                    });
+                }
+              });
+          });
           break;
         case "Update employee's role":
-          //QUERY: employees list AND role list
-          // call = Lister.employeeList("", "name ASC, last_name ASC") + " ; " +
-          connection.query(
-            `SELECT 
-              CONCAT(last_name, ", ", first_name) AS 'Name',
-              title AS 'Role',
-              name AS 'Department',
-              salary,
-              e_id
-            FROM 
-              employee 
-            LEFT JOIN
-              role
-            ON
-              employee.role_id=role.r_id
-            LEFT JOIN 
-              department 
-            ON 
-              role.department_id = department.d_id
-            ORDER BY
-              name ASC,
-              last_name ASC
-            ;
-            SELECT 
-              title AS 'Role', 
-              name AS 'Department', 
-              salary,
-              r_id 
-            FROM 
-              role 
-            LEFT JOIN 
-              department 
-            ON 
-              role.department_id = department.d_id 
-            ORDER BY 
-              name ASC, 
-              title ASC`,
-            (err, res) => {
-              let empList = [];
-              let roleList = [];
-              for (let line of res[0]) {
-                empList.push({
-                  name: `${line.Name} (${line.Role} in ${line.Department} - salary $${line.salary})`,
-                  value: { Name: line.Name, e_id: line.e_id },
-                });
-              }
-              empList.push({ name: "(CANCEL)", value: "CANCEL" });
-              for (let line of res[1]) {
-                roleList.push({
-                  name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
-                  value: line,
-                });
-              }
-              roleList.push({ name: "(CANCEL)", value: "CANCEL" });
-              console.log("");
-              inquirer
-                .prompt([
-                  {
-                    type: "list",
-                    name: "emp",
-                    choices: empList,
-                    message: "Which employee would you like to edit?",
-                  },
-                  {
-                    type: "list",
-                    name: "role",
-                    choices: roleList,
-                    message: "What should their new role be?",
-                  },
-                ])
-                .then((ans) => {
-                  let emp = ans.emp;
-                  let role = ans.role;
-                  if (emp == "CANCEL" || role == "CANCEL") {
-                    console.log("\nCancelling change.\n");
-                    chooseEdit();
-                  } else {
+          //QUERY: employee list AND role list
+          call =
+            Lister.employeeList("", "name ASC, last_name ASC") +
+            " ; " +
+            Lister.roleList("", "name ASC, title ASC");
+          connection.query(call, (err, res) => {
+            let empList = [];
+            let roleList = [];
+            for (let line of res[0]) {
+              empList.push({
+                name: `${line.Name} (${line.Role} in ${line.Department} - salary $${line.salary})`,
+                value: { Name: line.Name, e_id: line.e_id },
+              });
+            }
+            empList.push({ name: "(CANCEL)", value: "CANCEL" });
+            for (let line of res[1]) {
+              roleList.push({
+                name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+                value: line,
+              });
+            }
+            roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+            console.log("");
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  name: "emp",
+                  choices: empList,
+                  message: "Which employee would you like to edit?",
+                },
+                {
+                  type: "list",
+                  name: "role",
+                  choices: roleList,
+                  message: "What should their new role be?",
+                },
+              ])
+              .then((ans) => {
+                let emp = ans.emp;
+                let role = ans.role;
+                if (emp == "CANCEL" || role == "CANCEL") {
+                  console.log("\nCancelling change.\n");
+                  chooseEdit();
+                } else {
+                  //confirm
+                  console.log("");
+                  inquirer
+                    .prompt([
+                      {
+                        type: "confirm",
+                        name: "conf",
+                        message: `Please confirm: \n ** ${emp.Name} ** \n will be assigned to NEW ROLE \n ** ${role.Role} in ${role.Department} (salary $${role.salary}) **\n`,
+                      },
+                    ])
+                    .then((ans) => {
+                      if (ans.conf == false) {
+                        console.log("\nCancelling change.\n");
+                        //cancel, go back
+                        chooseEdit();
+                      } else {
+                        //QUERY: UPDATE: role_id
+                        connection.query(
+                          `UPDATE 
+                              employee
+                            SET
+                              role_id = ${role.r_id}
+                            WHERE
+                              e_id = ${emp.e_id}`,
+                          (err, res) => {
+                            if (err) throw err;
+                            console.log(
+                              `\nUpdated ${emp.Name}'s role to ${role.Role} (${role.Department}) successfully!\n`
+                            );
+                            chooseRoute();
+                          }
+                        );
+                      }
+                    });
+                }
+              });
+          });
+          break;
+        case "Update salary of role":
+          //QUERY: role list
+          call = Lister.roleList("", "name ASC, title ASC");
+          connection.query(call, (err, res) => {
+            let roleList = [];
+            for (let line of res) {
+              roleList.push({
+                name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+                value: line,
+              });
+            }
+            roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+            console.log("");
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  name: "role",
+                  choices: roleList,
+                  message: "Which role do you want to update the salary for?",
+                },
+                {
+                  type: "number",
+                  name: "sal",
+                  message: "What should its new salary be?",
+                },
+              ])
+              .then((ans) => {
+                let role = ans.role;
+                let sal = ans.sal;
+                if (role == "CANCEL") {
+                  console.log("\nCancelling change.\n");
+                  chooseEdit();
+                } else {
+                  //set up table instance
+                  p = new Table({
+                    title: `\n\nEmployees assigned \n   to this role`,
+                    columns: [{ name: "Name", alignment: "center" }],
+                    enabledColumns: ["Name"],
+                  });
+                  //QUERY: employees in role
+                  call = Lister.employeeList(
+                    `role_id = ${role.r_id}`,
+                    "last_name ASC"
+                  );
+                  connection.query(call, (err, res) => {
+                    if (err) throw err;
+                    //feed query results directly into table, print table
+                    p.addRows(res);
+                    console.log("\n");
+                    p.printTable();
                     //confirm
                     console.log("");
                     inquirer
@@ -624,7 +673,7 @@ async function chooseEdit() {
                         {
                           type: "confirm",
                           name: "conf",
-                          message: `Please confirm: \n ** ${emp.Name} ** \n will be assigned to NEW ROLE \n ** ${role.Role} in ${role.Department} (salary $${role.salary}) **\n`,
+                          message: `\n(NOTE: affected employees listed above)\nPlease confirm: \n ** ${role.Role} ** \n will be updated to reflect salary \n ** $${sal} **\n`,
                         },
                       ])
                       .then((ans) => {
@@ -633,249 +682,131 @@ async function chooseEdit() {
                           //cancel, go back
                           chooseEdit();
                         } else {
-                          //QUERY: UPDATE: role_id
+                          //QUERY: UPDATE: salary by r_id
                           connection.query(
                             `UPDATE 
-                              employee
-                            SET
-                              role_id = ${role.r_id}
-                            WHERE
-                              e_id = ${emp.e_id}`,
+                                  role
+                                SET
+                                  salary = ${sal}
+                                WHERE
+                                  r_id = ${role.r_id}`,
                             (err, res) => {
                               if (err) throw err;
                               console.log(
-                                `\nUpdated ${emp.Name}'s role to ${role.Role} (${role.Department}) successfully!\n`
+                                `\nUpdated ${role.Role}'s salary to ${sal} successfully!\n`
                               );
                               chooseRoute();
                             }
                           );
                         }
                       });
-                  }
-                });
-            }
-          );
-          break;
-        case "Update salary of role":
-          //QUERY: role list
-          connection.query(
-            `SELECT 
-              title AS 'Role', 
-              name AS 'Department', 
-              salary,
-              r_id 
-            FROM 
-              role 
-            LEFT JOIN 
-              department 
-            ON 
-              role.department_id = department.d_id 
-            ORDER BY 
-              name ASC, 
-              title ASC`,
-            (err, res) => {
-              let roleList = [];
-              for (let line of res) {
-                roleList.push({
-                  name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
-                  value: line,
-                });
-              }
-              roleList.push({ name: "(CANCEL)", value: "CANCEL" });
-              console.log("");
-              inquirer
-                .prompt([
-                  {
-                    type: "list",
-                    name: "role",
-                    choices: roleList,
-                    message: "Which role do you want to update the salary for?",
-                  },
-                  {
-                    type: "number",
-                    name: "sal",
-                    message: "What should its new salary be?",
-                  },
-                ])
-                .then((ans) => {
-                  let role = ans.role;
-                  let sal = ans.sal;
-                  if (role == "CANCEL") {
-                    console.log("\nCancelling change.\n");
-                    chooseEdit();
-                  } else {
-                    //set up table instance
-                    p = new Table({
-                      title: `\n\nEmployees assigned \n   to this role`,
-                      columns: [{ name: "Name", alignment: "center" }],
-                      enabledColumns: ["Name"]
-                    });
-                    //QUERY: employees in role
-                    call = Lister.employeeList(`role_id = ${role.r_id}`,"last_name ASC")
-                    connection.query(call, (err, res) => {
-                        if (err) throw err;
-                        //feed query results directly into table, print table
-                        p.addRows(res);
-                        console.log("\n");
-                        p.printTable();
-                        //confirm
-                        console.log("");
-                        inquirer
-                          .prompt([
-                            {
-                              type: "confirm",
-                              name: "conf",
-                              message: `\n(NOTE: affected employees listed above)\nPlease confirm: \n ** ${role.Role} ** \n will be updated to reflect salary \n ** $${sal} **\n`,
-                            },
-                          ])
-                          .then((ans) => {
-                            if (ans.conf == false) {
-                              console.log("\nCancelling change.\n");
-                              //cancel, go back
-                              chooseEdit();
-                            } else {
-                              //QUERY: UPDATE: salary by r_id
-                              connection.query(
-                                `UPDATE 
-                                  role
-                                SET
-                                  salary = ${sal}
-                                WHERE
-                                  r_id = ${role.r_id}`,
-                                (err, res) => {
-                                  if (err) throw err;
-                                  console.log(
-                                    `\nUpdated ${role.Role}'s salary to ${sal} successfully!\n`
-                                  );
-                                  chooseRoute();
-                                }
-                              );
-                            }
-                          });
-                      }
-                    );
-                  }
-                });
-            }
-          );
+                  });
+                }
+              });
+          });
           break;
         case "Update department of role":
-          //QUERY: role list
-          connection.query(
-            `SELECT 
-              title AS 'Role', 
-              name AS 'Department', 
-              salary,
-              r_id 
-            FROM 
-              role 
-            LEFT JOIN 
-              department 
-            ON 
-              role.department_id = department.d_id 
-            ORDER BY 
-              name ASC, 
-              title ASC
-            ;
-            SELECT
-              *
-            FROM
-              department`,
-            (err, res) => {
-              let roleList = [];
-              let deptList = [];
-              for (let line of res[0]) {
-                roleList.push({
-                  name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
-                  value: line,
-                });
-              }
-              roleList.push({ name: "(CANCEL)", value: "CANCEL" });
-              for (let line of res[1]) {
-                deptList.push({
-                  name: line.name,
-                  value: line,
-                });
-              }
-              deptList.push({ name: "(CANCEL)", value: "CANCEL" });
-              console.log("");
-              inquirer
-                .prompt([
-                  {
-                    type: "list",
-                    name: "role",
-                    choices: roleList,
-                    message:
-                      "Which role do you want to move to another department?",
-                  },
-                  {
-                    type: "list",
-                    name: "dept",
-                    choices: deptList,
-                    message: "Which department should it be moved to?",
-                  },
-                ])
-                .then((ans) => {
-                  let role = ans.role;
-                  let dept = ans.dept;
-                  if (dept == "CANCEL" || role == "CANCEL") {
-                    console.log("\nCancelling change.\n");
-                    chooseEdit();
-                  } else {
-                    //set up table instance
-                    p = new Table({
-                      title: `\n\nEmployees assigned \n   to this role`,
-                      columns: [{ name: "Name", alignment: "center" }],
-                      enabledColumns: ["Name"]
-                    });
-                    //QUERY: employees in role
-                    call = Lister.employeeList(`role_id = ${role.r_id}`,"last_name ASC")
-                    connection.query(call, (err, res) => {
-                        if (err) throw err;
-                        //feed query results directly into table, print table
-                        p.addRows(res);
-                        console.log("\n");
-                        p.printTable();
-                        //confirm
-                        console.log("");
-                        inquirer
-                          .prompt([
-                            {
-                              type: "confirm",
-                              name: "conf",
-                              message: `\n(NOTE: affected employees listed above)\nPlease confirm: \n ** ${role.Role} ** \n will be assigned to NEW DEPARTMENT \n ** ${dept.name} **\n`,
-                            },
-                          ])
-                          .then((ans) => {
-                            if (ans.conf == false) {
-                              console.log("\nCancelling change.\n");
-                              //cancel, go back
-                              chooseEdit();
-                            } else {
-                              //QUERY: UPDATE: department_id by r_id
-                              connection.query(
-                                `UPDATE 
+          //QUERY: role list AND department list
+          call =
+            Lister.roleList("", "name ASC, title ASC") +
+            ";" +
+            Lister.departmentList();
+          connection.query(call, (err, res) => {
+            let roleList = [];
+            let deptList = [];
+            for (let line of res[0]) {
+              roleList.push({
+                name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+                value: line,
+              });
+            }
+            roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+            for (let line of res[1]) {
+              deptList.push({
+                name: line.name,
+                value: line,
+              });
+            }
+            deptList.push({ name: "(CANCEL)", value: "CANCEL" });
+            console.log("");
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  name: "role",
+                  choices: roleList,
+                  message:
+                    "Which role do you want to move to another department?",
+                },
+                {
+                  type: "list",
+                  name: "dept",
+                  choices: deptList,
+                  message: "Which department should it be moved to?",
+                },
+              ])
+              .then((ans) => {
+                let role = ans.role;
+                let dept = ans.dept;
+                if (dept == "CANCEL" || role == "CANCEL") {
+                  console.log("\nCancelling change.\n");
+                  chooseEdit();
+                } else {
+                  //set up table instance
+                  p = new Table({
+                    title: `\n\nEmployees assigned \n   to this role`,
+                    columns: [{ name: "Name", alignment: "center" }],
+                    enabledColumns: ["Name"],
+                  });
+                  //QUERY: employees in role
+                  call = Lister.employeeList(
+                    `role_id = ${role.r_id}`,
+                    "last_name ASC"
+                  );
+                  connection.query(call, (err, res) => {
+                    if (err) throw err;
+                    //feed query results directly into table, print table
+                    p.addRows(res);
+                    console.log("\n");
+                    p.printTable();
+                    //confirm
+                    console.log("");
+                    inquirer
+                      .prompt([
+                        {
+                          type: "confirm",
+                          name: "conf",
+                          message: `\n(NOTE: affected employees listed above)\nPlease confirm: \n ** ${role.Role} ** \n will be assigned to NEW DEPARTMENT \n ** ${dept.name} **\n`,
+                        },
+                      ])
+                      .then((ans) => {
+                        if (ans.conf == false) {
+                          console.log("\nCancelling change.\n");
+                          //cancel, go back
+                          chooseEdit();
+                        } else {
+                          //QUERY: UPDATE: department_id by r_id
+                          connection.query(
+                            `UPDATE 
                               role
                             SET
                               department_id = ${dept.d_id}
                             WHERE
                               r_id = ${role.r_id}`,
-                                (err, res) => {
-                                  if (err) throw err;
-                                  console.log(
-                                    `\nUpdated ${role.Role}'s department to ${dept.name} successfully!\n`
-                                  );
-                                  chooseRoute();
-                                }
+                            (err, res) => {
+                              if (err) throw err;
+                              console.log(
+                                `\nUpdated ${role.Role}'s department to ${dept.name} successfully!\n`
                               );
+                              chooseRoute();
                             }
-                          });
-                      }
-                    );
-                  }
-                });
-            }
-          );
+                          );
+                        }
+                      });
+                  });
+                }
+              });
+          });
           break;
         case "Go back":
           chooseRoute();
@@ -911,114 +842,95 @@ async function chooseAdd() {
             manager_id: null,
           };
           //QUERY: employee list AND role list
-          connection.query(
-            `SELECT 
-              name, r_id, title, salary 
-            FROM 
-              role 
-            LEFT JOIN 
-              department 
-            ON 
-              role.department_id = department.d_id
-            ORDER BY
-              name ASC, title ASC
-            ; 
-            SELECT
-              e_id, 
-              CONCAT(last_name, ", ", first_name) AS 'Name',
-              title 
-            FROM 
-              employee 
-            LEFT JOIN 
-              role 
-            ON 
-              employee.role_id=role.r_id
-            ORDER BY
-              last_name ASC`,
-            (err, res) => {
-              let roleList = [];
-              let mgrList = [
-                { name: "None", value: { name: "none", e_id: null } },
-              ];
-              for (let line of res[0]) {
-                roleList.push({
-                  name: `${line.title} in ${line.name} (salary: $${line.salary})`,
-                  value: { name: line.name, r_id: line.r_id },
-                });
-              }
-              roleList.push({ name: "(CANCEL)", value: "CANCEL" });
-              for (let line of res[1]) {
-                mgrList.push({
-                  name: `${line.Name} (title: ${line.title})`,
-                  value: { name: line.Name, e_id: line.e_id },
-                });
-              }
-              mgrList.push({ name: "(CANCEL)", value: "CANCEL" });
-              console.log("");
-              inquirer
-                .prompt([
-                  {
-                    type: "input",
-                    name: "first",
-                    message: "What is the employee's first name?",
-                    validate: (str) => str != "",
-                  },
-                  {
-                    type: "input",
-                    name: "last",
-                    message: "What is the employee's last name?",
-                    validate: (str) => str != "",
-                  },
-                  {
-                    type: "list",
-                    name: "role",
-                    choices: roleList,
-                    message: "Which role should employee be assigned to?",
-                  },
-                ])
-                .then((ans1) => {
-                  console.log(ans1);
-                  if (ans1.role != "CANCEL") {
-                    emp.first_name = ans1.first;
-                    emp.last_name = ans1.last;
-                    emp.role_id = parseInt(ans1.role.r_id);
-                    console.log("");
-                    inquirer
-                      .prompt([
-                        {
-                          type: "list",
-                          name: "mgr",
-                          choices: mgrList,
-                          message:
-                            "Who should be assigned as this employee's manager?",
-                        },
-                      ])
-                      .then((ans2) => {
-                        if (ans2 != "CANCEL") {
-                          connection.query(
-                            "INSERT INTO employee SET ?",
-                            emp,
-                            function (err, res) {
-                              if (err) throw err;
-                              console.log("Employee added!");
-                              chooseAdd();
-                            }
-                          );
-                        } else {
-                          chooseAdd();
-                        }
-                      });
-                  } else {
-                    chooseAdd();
-                  }
-                });
+          call =
+            Lister.employeeList("", "name ASC, last_name ASC") +
+            " ; " +
+            Lister.roleList("", "name ASC, title ASC");
+          connection.query(call, (err, res) => {
+            let mgrList = [
+              { name: "None", value: { name: "none", e_id: null } },
+            ];
+            let roleList = [];
+            for (let line of res[0]) {
+              mgrList.push({
+                name: `${line.Name} (role: ${line.Role})`,
+                value: { name: line.Name, e_id: line.e_id },
+              });
             }
-          );
+            mgrList.push({ name: "(CANCEL)", value: "CANCEL" });
+            for (let line of res[1]) {
+              roleList.push({
+                name: `${line.Role} in ${line.Department} (salary: $${line.Salary})`,
+                value: { name: line.Department, r_id: line.r_id },
+              });
+            }
+            roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+            console.log("");
+            inquirer
+              .prompt([
+                {
+                  type: "input",
+                  name: "first",
+                  message: "What is the employee's first name?",
+                  validate: (str) => str != "",
+                },
+                {
+                  type: "input",
+                  name: "last",
+                  message: "What is the employee's last name?",
+                  validate: (str) => str != "",
+                },
+                {
+                  type: "list",
+                  name: "role",
+                  choices: roleList,
+                  message: "Which role should employee be assigned to?",
+                },
+              ])
+              .then((ans1) => {
+                console.log(ans1);
+                if (ans1.role != "CANCEL") {
+                  emp.first_name = ans1.first;
+                  emp.last_name = ans1.last;
+                  emp.role_id = parseInt(ans1.role.r_id);
+                  console.log("");
+                  inquirer
+                    .prompt([
+                      {
+                        type: "list",
+                        name: "mgr",
+                        choices: mgrList,
+                        message:
+                          "Who should be assigned as this employee's manager?",
+                      },
+                    ])
+                    .then((ans2) => {
+                      if (ans2 != "CANCEL") {
+                        emp.manager_id = ans2.mgr.e_id;;;
+                        connection.query(
+                          "INSERT INTO employee SET ?",
+                          emp,
+                          function (err, res) {
+                            if (err) throw err;
+                            console.log("Employee added!");
+                            chooseAdd();
+                          }
+                        );
+                      } else {
+                        chooseAdd();
+                      }
+                    });
+                } else {
+                  chooseAdd();
+                }
+              });
+          });
           break;
         case "New Role":
           console.log("\nNEW ROLE");
           //QUERY: department list
-          connection.query("SELECT * FROM department", (err, res) => {
+          call = Lister.departmentList();
+          connection.query(call, (err, res) => {
             let deptList = [];
             for (let line of res) {
               deptList.push({
@@ -1117,293 +1029,271 @@ async function chooseDelete() {
       switch (ans.query) {
         case "Delete Employee":
           //QUERY: employee list, sort by department then name
-          call=Lister.employeeList("","name ASC, last_name ASC")
-          connection.query(call,
-            (err, res) => {
-              let empList = [];
-              for (let line of res) {
-                empList.push({
-                  name: `${line.Name} (${line.Role} in ${line.Department})`,
-                  value: line,
-                });
-              }
-              empList.push({ name: "(CANCEL)", value: "CANCEL" });
-                    console.log("");
-                    inquirer
-                      .prompt([
-                        {
-                          type: "list",
-                          name: "emp",
-                          choices: empList,
-                          message: "Which employee do you want to delete?",
-                        },
-                      ])
-                      .then((ans) => {
-                        let emp = ans.emp;
-                        if (emp == "CANCEL") {
-                          console.log("\nCancelling change.\n");
-                          chooseDelete();
-                        } else {
-                          //QUERY: employees by manager, sort on name
-                          call = Lister.employeeList(`manager_id = ${emp.e_id}`, "last_name ASC")
-                          connection.query(call,
-                            (err, res) => {
-                              if (err) throw err;
-                              if (res != "") {
-                                //set up table instance
-                                p = new Table({
-                                  title: `Employees managed by ${emp.Name}`,
-                                  columns: [
-                                    { name: "Name", alignment: "center" },
-                                    { name: "Role", alignment: "center" },
-                                    { name: "Department", alignment: "center" },
-                                  ],
-                                  enabledColumns: ["Name", "Role", "Department"]
-                                });
-                                //feed query results directly into table, print table
-                                p.addRows(res);
-                                console.log("\n");
-                                p.printTable();
-                                console.log(
-                                  "\nEmployees above have the chosen employee set as their manager. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
-                                );
-                                chooseRoute();
-                              } else {
-                                //confirm
-                                console.log("");
-                                inquirer
-                                  .prompt([
-                                    {
-                                      type: "confirm",
-                                      name: "conf",
-                                      message: `\nPlease confirm: \n ** ${emp.Name} (${emp.Role} in ${emp.Department}) ** \n will be DELETED.\n`,
-                                    },
-                                  ])
-                                  .then((ans) => {
-                                    if (ans.conf == false) {
-                                      console.log("\nCancelling change.\n");
-                                      //cancel, go back
-                                      chooseDelete();
-                                    } else {
-                                      connection.query(
-                                        `DELETE FROM 
+          call = Lister.employeeList("", "name ASC, last_name ASC");
+          connection.query(call, (err, res) => {
+            let empList = [];
+            for (let line of res) {
+              empList.push({
+                name: `${line.Name} (${line.Role} in ${line.Department})`,
+                value: line,
+              });
+            }
+            empList.push({ name: "(CANCEL)", value: "CANCEL" });
+            console.log("");
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  name: "emp",
+                  choices: empList,
+                  message: "Which employee do you want to delete?",
+                },
+              ])
+              .then((ans) => {
+                let emp = ans.emp;
+                if (emp == "CANCEL") {
+                  console.log("\nCancelling change.\n");
+                  chooseDelete();
+                } else {
+                  //QUERY: employees by manager, sort on name
+                  call = Lister.employeeList(
+                    `manager_id = ${emp.e_id}`,
+                    "last_name ASC"
+                  );
+                  connection.query(call, (err, res) => {
+                    if (err) throw err;
+                    if (res != "") {
+                      //set up table instance
+                      p = new Table({
+                        title: `Employees managed by ${emp.Name}`,
+                        columns: [
+                          { name: "Name", alignment: "center" },
+                          { name: "Role", alignment: "center" },
+                          { name: "Department", alignment: "center" },
+                        ],
+                        enabledColumns: ["Name", "Role", "Department"],
+                      });
+                      //feed query results directly into table, print table
+                      p.addRows(res);
+                      console.log("\n");
+                      p.printTable();
+                      console.log(
+                        "\nEmployees above have the chosen employee set as their manager. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
+                      );
+                      chooseRoute();
+                    } else {
+                      //confirm
+                      console.log("");
+                      inquirer
+                        .prompt([
+                          {
+                            type: "confirm",
+                            name: "conf",
+                            message: `\nPlease confirm: \n ** ${emp.Name} (${emp.Role} in ${emp.Department}) ** \n will be DELETED.\n`,
+                          },
+                        ])
+                        .then((ans) => {
+                          if (ans.conf == false) {
+                            console.log("\nCancelling change.\n");
+                            //cancel, go back
+                            chooseDelete();
+                          } else {
+                            connection.query(
+                              `DELETE FROM 
                                   employee
                                 WHERE
                                   e_id = ${emp.e_id}`,
-                                        (err, res) => {
-                                          if (err) throw err;
-                                          console.log(
-                                            `\n${emp.Name} deleted successfully!\n`
-                                          );
-                                          chooseRoute();
-                                        }
-                                      );
-                                    }
-                                  });
+                              (err, res) => {
+                                if (err) throw err;
+                                console.log(
+                                  `\n${emp.Name} deleted successfully!\n`
+                                );
+                                chooseRoute();
                               }
-                            }
-                          );
-                        }
-                      });})
+                            );
+                          }
+                        });
+                    }
+                  });
+                }
+              });
+          });
           break;
         case "Delete Role":
           //QUERY: role list
-          connection.query(
-            `SELECT 
-              title AS 'Role', 
-              name AS 'Department',
-              salary,
-              r_id 
-            FROM 
-              role 
-            LEFT JOIN 
-              department 
-            ON 
-              role.department_id = department.d_id 
-            ORDER BY 
-              name ASC, 
-              title ASC`,
-            (err, res) => {
-              let roleList = [];
-              for (let line of res) {
-                roleList.push({
-                  name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
-                  value: line,
-                });
-              }
-              roleList.push({ name: "(CANCEL)", value: "CANCEL" });
-              console.log("");
-              inquirer
-                .prompt([
-                  {
-                    type: "list",
-                    name: "role",
-                    choices: roleList,
-                    message: "Which role do you want to delete?",
-                  },
-                ])
-                .then((ans) => {
-                  let role = ans.role;
-                  if (role == "CANCEL") {
-                    console.log("\nCancelling change.\n");
-                    chooseDelete();
-                  } else {
-                    //QUERY: employee by role
-                    call = Lister.employeeList(`role_id = ${role.r_id}`,"last_name ASC")
-                    connection.query(call, (err, res) => {
-                        if (err) throw err;
-                        if (res != "") {
-                          //set up table instance
-                          p = new Table({
-                            title: `\n\nEmployees assigned \n   to this role`,
-                            columns: [{ name: "Name", alignment: "center" }],
-                            enabledColumns: ["Name"]
-                          });
-                          //feed query results directly into table, print table
-                          p.addRows(res);
-                          console.log("\n");
-                          p.printTable();
-                          console.log(
-                            "\nEmployees above are assigned to chosen role. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
-                          );
-                          chooseRoute();
-                        } else {
-                          //confirm
-                          console.log("");
-                          inquirer
-                            .prompt([
-                              {
-                                type: "confirm",
-                                name: "conf",
-                                message: `\nPlease confirm: \n ** ${role.Role} in ${role.Department} ** \n will be DELETED.\n`,
-                              },
-                            ])
-                            .then((ans) => {
-                              if (ans.conf == false) {
-                                console.log("\nCancelling change.\n");
-                                //cancel, go back
-                                chooseDelete();
-                              } else {
-                                connection.query(
-                                  `DELETE FROM 
+          call = Lister.roleList("", "name ASC, title ASC");
+          connection.query(call, (err, res) => {
+            let roleList = [];
+            for (let line of res) {
+              roleList.push({
+                name: `${line.Role} in ${line.Department} - salary $${line.salary}`,
+                value: line,
+              });
+            }
+            roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+            console.log("");
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  name: "role",
+                  choices: roleList,
+                  message: "Which role do you want to delete?",
+                },
+              ])
+              .then((ans) => {
+                let role = ans.role;
+                if (role == "CANCEL") {
+                  console.log("\nCancelling change.\n");
+                  chooseDelete();
+                } else {
+                  //QUERY: employee by role
+                  call = Lister.employeeList(
+                    `role_id = ${role.r_id}`,
+                    "last_name ASC"
+                  );
+                  connection.query(call, (err, res) => {
+                    if (err) throw err;
+                    if (res != "") {
+                      //set up table instance
+                      p = new Table({
+                        title: `\n\nEmployees assigned \n   to this role`,
+                        columns: [{ name: "Name", alignment: "center" }],
+                        enabledColumns: ["Name"],
+                      });
+                      //feed query results directly into table, print table
+                      p.addRows(res);
+                      console.log("\n");
+                      p.printTable();
+                      console.log(
+                        "\nEmployees above are assigned to chosen role. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
+                      );
+                      chooseRoute();
+                    } else {
+                      //confirm
+                      console.log("");
+                      inquirer
+                        .prompt([
+                          {
+                            type: "confirm",
+                            name: "conf",
+                            message: `\nPlease confirm: \n ** ${role.Role} in ${role.Department} ** \n will be DELETED.\n`,
+                          },
+                        ])
+                        .then((ans) => {
+                          if (ans.conf == false) {
+                            console.log("\nCancelling change.\n");
+                            //cancel, go back
+                            chooseDelete();
+                          } else {
+                            connection.query(
+                              `DELETE FROM 
                                   role
                                 WHERE
                                   r_id = ${role.r_id}`,
-                                  (err, res) => {
-                                    if (err) throw err;
-                                    console.log(
-                                      `\n${role.Role} in ${role.Department} deleted successfully!\n`
-                                    );
-                                    chooseRoute();
-                                  }
+                              (err, res) => {
+                                if (err) throw err;
+                                console.log(
+                                  `\n${role.Role} in ${role.Department} deleted successfully!\n`
                                 );
+                                chooseRoute();
                               }
-                            });
-                        }
-                      }
-                    );
-                  }
-                });
-            }
-          );
+                            );
+                          }
+                        });
+                    }
+                  });
+                }
+              });
+          });
           break;
         case "Delete Department":
           //QUERY: department list
-          call = Lister.departmentList()
+          call = Lister.departmentList();
           connection.query(call, (err, res) => {
-              let deptList = [];
-              for (let line of res) {
-                deptList.push({
-                  name: line.name,
-                  value: line,
-                });
-              }
-              deptList.push({ name: "(CANCEL)", value: "CANCEL" });
-              console.log("");
-              inquirer
-                .prompt([
-                  {
-                    type: "list",
-                    name: "dept",
-                    choices: deptList,
-                    message: "Which department do you want to delete?",
-                  },
-                ])
-                .then((ans) => {
-                  let dept = ans.dept;
-                  if (dept == "CANCEL") {
-                    console.log("\nCancelling change.\n");
-                    chooseDelete();
-                  } else {
-                    connection.query(
-                      //QUERY: roles by department
-                      `SELECT 
-                          title AS 'Title'
-                        FROM 
-                          role
-                        LEFT JOIN
-                          department
-                        ON
-                          role.department_id=department.d_id
-                        WHERE
-                          department_id = "${dept.d_id}"
-                        ORDER BY 
-                          title ASC`,
-                      (err, res) => {
-                        if (err) throw err;
-                        if (res != "") {
-                          //set up table instance
-                          p = new Table({
-                            title: `\n\n  Roles assigned \nto this department`,
-                            columns: [{ name: "Title", alignment: "center" }],
-                          });
-                          //feed query results directly into table, print table
-                          p.addRows(res);
-                          console.log("\n");
-                          p.printTable();
-                          console.log(
-                            "\nRoles above are assigned to chosen department. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
-                          );
-                          chooseRoute();
-                        } else {
-                          //confirm
-                          console.log("");
-                          inquirer
-                            .prompt([
-                              {
-                                type: "confirm",
-                                name: "conf",
-                                message: `\nPlease confirm: \n ** ${dept.name} ** \n will be DELETED.\n`,
-                              },
-                            ])
-                            .then((ans) => {
-                              if (ans.conf == false) {
-                                console.log("\nCancelling change.\n");
-                                //cancel, go back
-                                chooseDelete();
-                              } else {
-                                connection.query(
-                                  `DELETE FROM 
+            let deptList = [];
+            for (let line of res) {
+              deptList.push({
+                name: line.name,
+                value: line,
+              });
+            }
+            deptList.push({ name: "(CANCEL)", value: "CANCEL" });
+            console.log("");
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  name: "dept",
+                  choices: deptList,
+                  message: "Which department do you want to delete?",
+                },
+              ])
+              .then((ans) => {
+                let dept = ans.dept;
+                if (dept == "CANCEL") {
+                  console.log("\nCancelling change.\n");
+                  chooseDelete();
+                } else {
+                  //QUERY: roles by department
+                  call = Lister.roleList(
+                    `department_id = ${dept.d_id}`,
+                    "title ASC"
+                  );
+                  connection.query(call, (err, res) => {
+                    if (err) throw err;
+                    if (res != "") {
+                      //set up table instance
+                      p = new Table({
+                        title: `\n\n  Roles assigned \nto this department`,
+                        columns: [{ name: "Title", alignment: "center" }],
+                        enabledColumns: ["Title"],
+                      });
+                      //feed query results directly into table, print table
+                      p.addRows(res);
+                      console.log("\n");
+                      p.printTable();
+                      console.log(
+                        "\nRoles above are assigned to chosen department. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
+                      );
+                      chooseRoute();
+                    } else {
+                      //confirm
+                      console.log("");
+                      inquirer
+                        .prompt([
+                          {
+                            type: "confirm",
+                            name: "conf",
+                            message: `\nPlease confirm: \n ** ${dept.name} ** \n will be DELETED.\n`,
+                          },
+                        ])
+                        .then((ans) => {
+                          if (ans.conf == false) {
+                            console.log("\nCancelling change.\n");
+                            //cancel, go back
+                            chooseDelete();
+                          } else {
+                            connection.query(
+                              `DELETE FROM 
                                     department
                                   WHERE
                                     d_id = ${dept.d_id}`,
-                                  (err, res) => {
-                                    if (err) throw err;
-                                    console.log(
-                                      `\n${dept.name} deleted successfully!\n`
-                                    );
-                                    chooseRoute();
-                                  }
+                              (err, res) => {
+                                if (err) throw err;
+                                console.log(
+                                  `\n${dept.name} deleted successfully!\n`
                                 );
+                                chooseRoute();
                               }
-                            });
-                        }
-                      }
-                    );
-                  }
-                });
-            }
-          );
+                            );
+                          }
+                        });
+                    }
+                  });
+                }
+              });
+          });
           break;
         case "Go back":
           chooseRoute();
