@@ -40,6 +40,12 @@ const connection = mysql.createConnection({
 
 let Lister = new Options(connection);
 
+function printOut(p, data) {
+  p.addRows(data);
+  console.log("\n");
+  p.printTable();
+}
+
 // Initiate MySQL Connection.
 connection.connect(function (err) {
   if (err) throw err;
@@ -119,9 +125,7 @@ async function chooseView() {
             (err, res) => {
               if (err) throw err;
               //feed query results directly into table, print table
-              p.addRows(res);
-              console.log("\n");
-              p.printTable();
+              printOut(p, res);
               //return to main menu
               chooseRoute();
             }
@@ -178,9 +182,7 @@ async function chooseView() {
                   (err, res) => {
                     if (err) throw err;
                     //feed query results directly into table, print table
-                    p.addRows(res);
-                    console.log("\n");
-                    p.printTable();
+                    printOut(p, res);
                     //return to main menu
                     chooseRoute();
                   }
@@ -204,9 +206,7 @@ async function chooseView() {
           connection.query(call, (err, res) => {
             if (err) throw err;
             //feed query results directly into table, print table
-            p.addRows(res);
-            console.log("\n");
-            p.printTable();
+            printOut(p, res);
             chooseRoute();
           });
           break;
@@ -265,9 +265,7 @@ async function chooseView() {
                   (err, res) => {
                     if (err) throw err;
                     //feed query results directly into table, print table
-                    p.addRows(res);
-                    console.log("\n");
-                    p.printTable();
+                    printOut(p, res);
                     chooseRoute();
                   }
                 );
@@ -291,9 +289,7 @@ async function chooseView() {
           connection.query(call, (err, res) => {
             if (err) throw err;
             //feed query results directly into table, print table
-            p.addRows(res);
-            console.log("\n");
-            p.printTable();
+            printOut(p, res);
             chooseRoute();
           });
           break;
@@ -338,9 +334,7 @@ async function chooseView() {
                 connection.query(call, (err, res) => {
                   if (err) throw err;
                   //feed query results directly into table, print table
-                  p.addRows(res);
-                  console.log("\n");
-                  p.printTable();
+                  printOut(p, res);
                   chooseRoute();
                 });
               });
@@ -417,9 +411,7 @@ async function chooseView() {
                   (err, res) => {
                     if (err) throw err;
                     //feed query results directly into table, print table
-                    p.addRows(res);
-                    console.log("\n");
-                    p.printTable();
+                    printOut(p, res);
                     chooseRoute();
                   }
                 );
@@ -645,7 +637,7 @@ async function chooseEdit() {
               ])
               .then((ans) => {
                 let role = ans.role;
-                let sal = toFixed(ans.sal,2);
+                let sal = parseFloat(ans.sal).toFixed(2);
                 if (role == "CANCEL") {
                   console.log("\nCancelling change.\n");
                   chooseEdit();
@@ -664,9 +656,7 @@ async function chooseEdit() {
                   connection.query(call, (err, res) => {
                     if (err) throw err;
                     //feed query results directly into table, print table
-                    p.addRows(res);
-                    console.log("\n");
-                    p.printTable();
+                    printOut(p, res);
                     //confirm
                     console.log("");
                     inquirer
@@ -767,9 +757,7 @@ async function chooseEdit() {
                   connection.query(call, (err, res) => {
                     if (err) throw err;
                     //feed query results directly into table, print table
-                    p.addRows(res);
-                    console.log("\n");
-                    p.printTable();
+                    printOut(p, res);
                     //confirm
                     console.log("");
                     inquirer
@@ -1076,9 +1064,7 @@ async function chooseDelete() {
                         enabledColumns: ["Name", "Role", "Department"],
                       });
                       //feed query results directly into table, print table
-                      p.addRows(res);
-                      console.log("\n");
-                      p.printTable();
+                      printOut(p, res);
                       console.log(
                         "\nEmployees above have the chosen employee set as their manager. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
                       );
@@ -1164,9 +1150,7 @@ async function chooseDelete() {
                         enabledColumns: ["Name"],
                       });
                       //feed query results directly into table, print table
-                      p.addRows(res);
-                      console.log("\n");
-                      p.printTable();
+                      printOut(p, res);
                       console.log(
                         "\nEmployees above are assigned to chosen role. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
                       );
@@ -1252,9 +1236,7 @@ async function chooseDelete() {
                         enabledColumns: ["Title"],
                       });
                       //feed query results directly into table, print table
-                      p.addRows(res);
-                      console.log("\n");
-                      p.printTable();
+                      printOut(p, res);
                       console.log(
                         "\nRoles above are assigned to chosen department. They must be reassigned or deleted before this change can be made.\nCancelling change.\n"
                       );
