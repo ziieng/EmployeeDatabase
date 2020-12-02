@@ -55,6 +55,19 @@ class Options {
     return query;
   }
 
+  shrinkRole(list) {
+    //compress list into inquirer choices
+    let roleList = [];
+    for (let line of list) {
+      roleList.push({
+        name: `${line.Role} in ${line.Department} - salary $${line.Salary}`,
+        value: line,
+      });
+    }
+    roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+    return roleList;
+  }
+
   employeeList(constraint, sort) {
     //list of employees
     if (constraint != "") {
@@ -86,4 +99,4 @@ class Options {
   }
 }
 
-  module.exports = Options;
+module.exports = Options;

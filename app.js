@@ -12,6 +12,8 @@ const PORT = process.env.PORT || 8080;
 //establish variables for tables
 let p = new Table();
 let call = "";
+let call0 = "";
+let call1 = "";
 
 console.log(`\n\n\n
   ███████╗███╗   ███╗██████╗ ██╗      ██████╗ ██╗   ██╗███████╗███████╗    
@@ -507,13 +509,10 @@ async function chooseEdit() {
           break;
         case "Update employee's role":
           //QUERY: employee list AND role list
-          call =
-            Lister.employeeList("", "name ASC, last_name ASC") +
-            " ; " +
-            Lister.roleList("", "name ASC, title ASC");
-          connection.query(call, (err, res) => {
+          call0 = Lister.employeeList("", "name ASC, last_name ASC");
+          call1 = Lister.roleList("", "name ASC, title ASC");
+          connection.query(`${call0} ; ${call1}`, (err, res) => {
             let empList = [];
-            let roleList = [];
             for (let line of res[0]) {
               empList.push({
                 name: `${line.Name} (${line.Role} in ${line.Department} - salary $${line.Salary})`,
@@ -521,13 +520,7 @@ async function chooseEdit() {
               });
             }
             empList.push({ name: "(CANCEL)", value: "CANCEL" });
-            for (let line of res[1]) {
-              roleList.push({
-                name: `${line.Role} in ${line.Department} - salary $${line.Salary}`,
-                value: line,
-              });
-            }
-            roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+            let roleList = Lister.shrinkRole(res[1]);
             console.log("");
             inquirer
               .prompt([
@@ -593,14 +586,7 @@ async function chooseEdit() {
           //QUERY: role list
           call = Lister.roleList("", "name ASC, title ASC");
           connection.query(call, (err, res) => {
-            let roleList = [];
-            for (let line of res) {
-              roleList.push({
-                name: `${line.Role} in ${line.Department} - salary $${line.Salary}`,
-                value: line,
-              });
-            }
-            roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+            let roleList = Lister.shrinkRole(res);
             console.log("");
             inquirer
               .prompt([
@@ -680,19 +666,11 @@ async function chooseEdit() {
           break;
         case "Update department of role":
           //QUERY: role list AND department list
-          call =
-            Lister.roleList("", "name ASC, title ASC") +
-            ";" +
-            Lister.departmentList();
-          connection.query(call, (err, res) => {
-            let roleList = [];
-            for (let line of res[0]) {
-              roleList.push({
-                name: `${line.Role} in ${line.Department} - salary $${line.Salary}`,
-                value: line,
-              });
-            }
-            let deptList = Lister.shrinkDept(res);
+          call0 = Lister.roleList("", "name ASC, title ASC");
+          call1 = Lister.departmentList();
+          connection.query(`${call0} ; ${call1}`, (err, res) => {
+            let roleList = Lister.shrinkRole(res[0]);
+            let deptList = Lister.shrinkDept(res[1]);
             deptList.push({ name: "(CANCEL)", value: "CANCEL" });
             console.log("");
             inquirer
@@ -806,15 +784,13 @@ async function chooseAdd() {
             manager_id: null,
           };
           //QUERY: employee list AND role list
-          call =
-            Lister.employeeList("", "name ASC, last_name ASC") +
-            " ; " +
-            Lister.roleList("", "name ASC, title ASC");
-          connection.query(call, (err, res) => {
+          call0 = Lister.employeeList("", "name ASC, last_name ASC");
+          call1 = Lister.roleList("", "name ASC, title ASC");
+          connection.query(`${call0} ; ${call1}`, (err, res) => {
             let mgrList = [
               { name: "None", value: { name: "none", e_id: null } },
             ];
-            let roleList = [];
+            let roleList = Lister.shrinkRole(res[1]);
             for (let line of res[0]) {
               mgrList.push({
                 name: `${line.Name} (role: ${line.Role})`,
@@ -822,13 +798,6 @@ async function chooseAdd() {
               });
             }
             mgrList.push({ name: "(CANCEL)", value: "CANCEL" });
-            for (let line of res[1]) {
-              roleList.push({
-                name: `${line.Role} in ${line.Department} (salary: $${line.Salary})`,
-                value: { name: line.Department, r_id: line.r_id },
-              });
-            }
-            roleList.push({ name: "(CANCEL)", value: "CANCEL" });
             console.log("");
             inquirer
               .prompt([
@@ -870,7 +839,7 @@ async function chooseAdd() {
                     ])
                     .then((ans2) => {
                       if (ans2 != "CANCEL") {
-                        emp.manager_id = ans2.mgr.e_id;;;
+                        emp.manager_id = ans2.mgr.e_id;
                         connection.query(
                           "INSERT INTO employee SET ?",
                           emp,
@@ -1080,14 +1049,7 @@ async function chooseDelete() {
           //QUERY: role list
           call = Lister.roleList("", "name ASC, title ASC");
           connection.query(call, (err, res) => {
-            let roleList = [];
-            for (let line of res) {
-              roleList.push({
-                name: `${line.Role} in ${line.Department} - salary $${line.Salary}`,
-                value: line,
-              });
-            }
-            roleList.push({ name: "(CANCEL)", value: "CANCEL" });
+            Lister.shrinkRole(res);
             console.log("");
             inquirer
               .prompt([
