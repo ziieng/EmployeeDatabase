@@ -8,6 +8,7 @@ class Options {
   }
 
   departmentList() {
+    //list of departments
     let query = `SELECT 
     *
   FROM 
@@ -15,6 +16,18 @@ class Options {
   ORDER BY 
     name ASC`;
     return query;
+  }
+
+  shrinkDept(list) {
+    //compress list into inquirer choices
+    let deptList = [];
+    for (let line of list) {
+      deptList.push({
+        name: line.name,
+        value: line,
+      });
+    }
+    return deptList;
   }
 
   roleList(constraint, sort) {

@@ -135,13 +135,7 @@ async function chooseView() {
           //QUERY: department list
           call = Lister.departmentList();
           connection.query(call, (err, res) => {
-            let deptList = [];
-            for (let line of res) {
-              deptList.push({
-                name: line.name,
-                value: line,
-              });
-            }
+            let deptList = Lister.shrinkDept(res);
             //ask user to choose department from list
             console.log("");
             inquirer
@@ -214,13 +208,7 @@ async function chooseView() {
           //QUERY: department list
           call = Lister.departmentList();
           connection.query(call, (err, res) => {
-            let deptList = [];
-            for (let line of res) {
-              deptList.push({
-                name: line.name,
-                value: line,
-              });
-            }
+            let deptList = Lister.shrinkDept(res);
             //ask user to choose department from list
             console.log("");
             inquirer
@@ -297,13 +285,7 @@ async function chooseView() {
           //QUERY: department list
           call = Lister.departmentList();
           connection.query(call, (err, res) => {
-            let deptList = [];
-            for (let line of res) {
-              deptList.push({
-                name: line.name,
-                value: line,
-              });
-            }
+            let deptList = Lister.shrinkDept(res);
             //ask user to choose department from list
             console.log("");
             inquirer
@@ -704,20 +686,13 @@ async function chooseEdit() {
             Lister.departmentList();
           connection.query(call, (err, res) => {
             let roleList = [];
-            let deptList = [];
             for (let line of res[0]) {
               roleList.push({
                 name: `${line.Role} in ${line.Department} - salary $${line.Salary}`,
                 value: line,
               });
             }
-            roleList.push({ name: "(CANCEL)", value: "CANCEL" });
-            for (let line of res[1]) {
-              deptList.push({
-                name: line.name,
-                value: line,
-              });
-            }
+            let deptList = Lister.shrinkDept(res);
             deptList.push({ name: "(CANCEL)", value: "CANCEL" });
             console.log("");
             inquirer
@@ -920,13 +895,7 @@ async function chooseAdd() {
           //QUERY: department list
           call = Lister.departmentList();
           connection.query(call, (err, res) => {
-            let deptList = [];
-            for (let line of res) {
-              deptList.push({
-                name: line.name,
-                value: line.d_id,
-              });
-            }
+            let deptList = Lister.shrinkDept(res);
             deptList.push({ name: "(CANCEL)", value: "CANCEL" });
             console.log("");
             inquirer
@@ -1197,13 +1166,7 @@ async function chooseDelete() {
           //QUERY: department list
           call = Lister.departmentList();
           connection.query(call, (err, res) => {
-            let deptList = [];
-            for (let line of res) {
-              deptList.push({
-                name: line.name,
-                value: line,
-              });
-            }
+            let deptList = Lister.shrinkDept(res);
             deptList.push({ name: "(CANCEL)", value: "CANCEL" });
             console.log("");
             inquirer
