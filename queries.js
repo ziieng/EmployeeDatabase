@@ -97,6 +97,19 @@ class Options {
 
     return query;
   }
+
+  shrinkEmployee(list) {
+    //compress list into inquirer choices
+    let empList = [];
+    for (let line of list) {
+      empList.push({
+        name: `${line.Name} - ${line.Role} in ${line.Department}`,
+        value: line,
+      });
+    }
+    empList.push({ name: "(CANCEL)", value: "CANCEL" });
+    return empList;
+  }
 }
 
 module.exports = Options;
